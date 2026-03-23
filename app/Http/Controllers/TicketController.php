@@ -89,18 +89,14 @@ class TicketController extends Controller
             return response()->json(['success' => false, 'message' => 'Hanya user/staff yang boleh membuat tiket.'], 403);
         }
 
-        // Auto assign — prioritas: (1) aturan kategori+client, (2) aturan kategori saja,
-        // (3) IT dengan role='ALL', (4) IT staff pertama yang tersedia
-        // Creator = user pemohon; Assignee = IT yang mengerjakan (bukan creator)
+        // Auto assign — hanya cocok jika ada rule exact kategori + client
+        // Jika tidak ada rule yang cocok, assignee_id = null (tidak di-assign otomatis)
         $assignee = AutoAssignRule::with('assignee')
             ->where('kategori', $request->category)
             ->where('client', $request->client)
-            ->first()
-            ?? AutoAssignRule::with('assignee')->where('kategori', $request->category)->first();
+            ->first();
 
-        $assigneeId = $assignee?->assignee_id
-            ?? User::where('role', 'ALL')->where('type', 'it')->first()?->id
-            ?? User::where('type', 'it')->first()?->id;
+        $assigneeId = $assignee?->assignee_id;
 
         // Generate ticket ID — pakai lock untuk hindari duplikat
         $ticketId = DB::transaction(function () {

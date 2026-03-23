@@ -1183,10 +1183,10 @@ function openCreate(){
 function previewAssign(){
   const cat=document.getElementById('f-cat').value;
   const client=document.getElementById('f-client').value;
-  const rule=AUTO_ASSIGN.find(r=>r.kategori===cat&&r.client===client)||AUTO_ASSIGN.find(r=>r.kategori===cat);
-  const name=rule?.assignee||'Puji Rahmat';
+  const rule=AUTO_ASSIGN.find(r=>r.kategori===cat&&r.client===client);
+  const name=rule?.assignee||'Belum ditentukan (akan di-assign manual)';
   document.getElementById('assign-preview-name').textContent=name;
-  document.getElementById('assign-preview').style.display='';
+  document.getElementById('assign-preview').style.display=rule?'':'none';
 }
 
 /* ═══ SUBMIT TICKET ═══ */
