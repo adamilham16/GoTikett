@@ -9,10 +9,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class User extends Model
 {
     protected $fillable = [
-        'username', 'name', 'password', 'type', 'role', 'dept', 'color', 'approver_id',
+        'username', 'name', 'email', 'password', 'type', 'role', 'dept', 'color', 'approver_id', 'is_active',
     ];
 
     protected $hidden = ['password'];
+
+    protected $casts = ['is_active' => 'boolean'];
 
     // Relasi ke tiket yang dibuat user ini
     public function tickets(): HasMany
@@ -36,7 +38,7 @@ class User extends Model
     public function getInitialsAttribute(): string
     {
         $parts = explode(' ', $this->name);
-        return strtoupper(substr(implode('', array_map(fn($p) => $p[0], $parts)), 0, 2));
+        return strtoupper(substr(implode('', array_map(fn($p) => $p !== '' ? $p[0] : '', $parts)), 0, 2));
     }
 
     public function isAdmin(): bool

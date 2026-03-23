@@ -9,8 +9,11 @@ use App\Models\Comment;
 use App\Models\Attachment;
 use App\Models\Task;
 use App\Models\AutoAssignRule;
+use App\Models\TicketFreeze;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
+use App\Models\Notification;
 
 class TicketController extends Controller
 {
@@ -23,22 +26,46 @@ class TicketController extends Controller
     public function index()
     {
         $user    = $this->currentUser();
-        $tickets = Ticket::with(['creator', 'assignee', 'approver', 'tasks'])
-            ->orderByDesc('created_at')
-            ->get();
+        $query   = Ticket::with(['creator', 'assignee', 'approver', 'tasks', 'currentFreeze.requester'])
+            ->withCount(['comments as it_comment_count' => fn($q) =>
+                $q->join('users', 'users.id', '=', 'comments.user_id')
+                  ->whereIn('users.type', ['it', 'manager'])
+            ])
+            ->orderByDesc('created_at');
+
+        // Role 'user' hanya melihat tiket milik sendiri
+        if ($user->type === 'user') {
+            $query->where('creator_id', $user->id);
+        }
+        // Role 'it' hanya melihat tiket yang di-assign ke dirinya
+        if ($user->type === 'it') {
+            $query->where('assignee_id', $user->id);
+        }
+        // Role 'manager' hanya melihat tiket dari User yang approver-nya adalah manager ini
+        if ($user->type === 'manager') {
+            $userIds = User::where('approver_id', $user->id)->pluck('id');
+            $query->whereIn('creator_id', $userIds);
+        }
+        // Role 'it_manager' melihat semua tiket yang assignee-nya IT SIM
+        if ($user->type === 'it_manager') {
+            $itIds = User::where('type', 'it')->pluck('id');
+            $query->whereIn('assignee_id', $itIds);
+        }
+
+        $tickets = $query->get();
 
         $stats = [
             'total'   => $tickets->count(),
             'pending' => $tickets->where('approval', 'pending')->count(),
-            'dev'     => $tickets->where('status', 'development')->where('approval', 'approved')->count(),
-            'live'    => $tickets->where('status', 'golive')->count(),
+            'active'  => $tickets->where('approval', 'approved')->whereNull('closed_at')->count(),
+            'closed'  => $tickets->whereNotNull('closed_at')->count(),
         ];
 
         // Data tambahan yang dibutuhkan Blade/JS
         $clients         = \App\Models\Client::orderBy('nama')->get();
         $itTeam          = User::where('type', 'it')->get(['id', 'name', 'color']);
-        $config          = \App\Models\AppConfig::all()->pluck('value', 'key');
-        $autoAssignRules = \App\Models\AutoAssignRule::with('assignee')->get();
+        $config          = \App\Models\AppConfig::allCached();
+        $autoAssignRules = \App\Models\AutoAssignRule::allCached();
 
         return view('dashboard.index', compact('user', 'tickets', 'stats', 'clients', 'itTeam', 'config', 'autoAssignRules'));
     }
@@ -47,15 +74,24 @@ class TicketController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'title'    => 'required|string|max:255',
-            'category' => 'required|string',
-            'client'   => 'required|string',
-            'type'     => 'required|in:incident,newproject,openrequest',
+            'title'       => 'required|string|max:255',
+            'category'    => 'required|string',
+            'client'      => 'required|string',
+            'type'        => 'required|in:incident,newproject,openrequest',
+            'attachments'   => 'nullable|array|max:10',
+            'attachments.*' => 'file|max:10240|mimes:jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx,txt,zip',
         ]);
 
         $user = $this->currentUser();
 
-        // Auto assign
+        // Hanya role 'user' yang boleh membuat tiket
+        if ($user->type !== 'user') {
+            return response()->json(['success' => false, 'message' => 'Hanya user/staff yang boleh membuat tiket.'], 403);
+        }
+
+        // Auto assign — prioritas: (1) aturan kategori+client, (2) aturan kategori saja,
+        // (3) IT dengan role='ALL', (4) IT staff pertama yang tersedia
+        // Creator = user pemohon; Assignee = IT yang mengerjakan (bukan creator)
         $assignee = AutoAssignRule::with('assignee')
             ->where('kategori', $request->category)
             ->where('client', $request->client)
@@ -63,7 +99,8 @@ class TicketController extends Controller
             ?? AutoAssignRule::with('assignee')->where('kategori', $request->category)->first();
 
         $assigneeId = $assignee?->assignee_id
-            ?? User::where('role', 'ALL')->where('type', 'it')->first()?->id;
+            ?? User::where('role', 'ALL')->where('type', 'it')->first()?->id
+            ?? User::where('type', 'it')->first()?->id;
 
         // Generate ticket ID — pakai lock untuk hindari duplikat
         $ticketId = DB::transaction(function () {
@@ -79,13 +116,10 @@ class TicketController extends Controller
             'type'        => $request->type,
             'category'    => $request->category,
             'client'      => $request->client,
-            'status'      => 'userreq',
             'approval'    => 'pending',
             'creator_id'  => $user->id,
             'assignee_id' => $assigneeId,
             'due_date'    => now()->addDays(14),
-            'stage_log'   => [],
-            'stage_due'   => [],
         ]);
 
         // Comment otomatis
@@ -110,6 +144,17 @@ class TicketController extends Controller
             }
         }
 
+        // Notifikasi ke assignee IT bahwa ada tiket baru untuknya
+        if ($assigneeId) {
+            Notification::send(
+                $assigneeId,
+                'ticket_assigned',
+                'Tiket Baru Di-assign',
+                "Tiket {$ticket->ticket_id} ({$ticket->title}) dari {$user->name} menunggu persetujuan.",
+                $ticket->ticket_id
+            );
+        }
+
         return response()->json(['success' => true, 'ticket_id' => $ticket->ticket_id]);
     }
 
@@ -117,9 +162,14 @@ class TicketController extends Controller
     public function show(string $ticketId)
     {
         $user   = $this->currentUser();
-        $ticket = Ticket::with(['creator', 'assignee', 'approver', 'comments.user', 'attachments', 'tasks'])
+        $ticket = Ticket::with(['creator', 'assignee', 'approver', 'comments.user', 'attachments', 'tasks', 'currentFreeze.requester', 'activeFreeze'])
             ->where('ticket_id', $ticketId)
             ->firstOrFail();
+
+        // Role 'user' hanya boleh lihat tiket miliknya sendiri
+        if ($user->type === 'user' && $ticket->creator_id !== $user->id) {
+            abort(403, 'Akses ditolak.');
+        }
 
         return response()->json($this->formatTicket($ticket, $user));
     }
@@ -133,105 +183,97 @@ class TicketController extends Controller
         }
 
         $ticket = Ticket::where('ticket_id', $ticketId)->firstOrFail();
-        $stageLog = $ticket->stage_log ?? [];
-        $stageLog['userreq'] = now()->toISOString();
 
         $ticket->update([
             'approval'    => 'approved',
             'approved_by' => $user->id,
             'approved_at' => now(),
-            'stage_log'   => $stageLog,
         ]);
 
         Comment::create([
             'ticket_id' => $ticket->id,
             'user_id'   => $user->id,
-            'text'      => "✅ Tiket disetujui oleh {$user->name}. Silakan mulai tahap Permintaan Pengguna.",
+            'text'      => "✅ Tiket disetujui oleh {$user->name}. IT dapat mulai merencanakan tugas.",
         ]);
+
+        // Notifikasi ke creator
+        if ($ticket->creator_id) {
+            Notification::send(
+                $ticket->creator_id,
+                'ticket_approved',
+                'Tiket Disetujui ✅',
+                "Tiket {$ticket->ticket_id} ({$ticket->title}) telah disetujui oleh {$user->name}.",
+                $ticket->ticket_id
+            );
+        }
 
         return response()->json(['success' => true]);
     }
 
     // ── Reject tiket ─────────────────────────────────────────────────────────
-    public function reject(string $ticketId)
+    public function reject(Request $request, string $ticketId)
     {
         $user = $this->currentUser();
         if ($user->type !== 'manager') {
             return response()->json(['success' => false, 'message' => 'Hanya Dept Head yang bisa menolak tiket.'], 403);
         }
 
+        $request->validate([
+            'reason' => 'required|string|min:10',
+        ]);
+
         $ticket = Ticket::where('ticket_id', $ticketId)->firstOrFail();
+        $reason = $request->input('reason');
+
+        // Simpan notice penolakan ke cache agar User bisa membacanya (expire 24 jam)
+        if ($ticket->creator_id) {
+            Cache::put("rejected_ticket_{$ticket->creator_id}", [
+                'ticket_id'   => $ticket->ticket_id,
+                'title'       => $ticket->title,
+                'reason'      => $reason,
+                'rejected_by' => $user->name,
+                'rejected_at' => now()->toDateTimeString(),
+            ], now()->addHours(24));
+
+            Notification::send(
+                $ticket->creator_id,
+                'ticket_rejected',
+                'Tiket Ditolak ❌',
+                "Tiket {$ticket->ticket_id} ({$ticket->title}) ditolak oleh {$user->name}. Alasan: {$reason}",
+                $ticket->ticket_id
+            );
+        }
+
         $ticket->delete();
 
         return response()->json(['success' => true]);
     }
 
-    // ── Simpan due date per stage ─────────────────────────────────────────────
-    public function saveStageDue(Request $request, string $ticketId)
+    // ── Notifikasi penolakan untuk User ──────────────────────────────────────
+    public function getRejectionNotice()
     {
-        $ticket   = Ticket::where('ticket_id', $ticketId)->firstOrFail();
-        $user     = $this->currentUser();
-        $stageDue = [];
-
-        $stages = array_filter(Ticket::STAGES, fn($s) => !in_array($s, ['userreq', 'golive']));
-        foreach ($stages as $stage) {
-            $val = $request->input($stage);
-            if ($val) $stageDue[$stage] = $val;
-        }
-
-        $ticket->update(['stage_due' => $stageDue]);
-
-        $filled = count($stageDue);
-        $total  = count($stages);
-        Comment::create([
-            'ticket_id' => $ticket->id,
-            'user_id'   => $user->id,
-            'text'      => "📅 Due date per stage telah diset oleh {$user->name} ({$filled}/{$total} stage diisi).",
+        $user = $this->currentUser();
+        $data = Cache::get("rejected_ticket_{$user->id}");
+        return response()->json([
+            'has_notice' => (bool) $data,
+            'data'       => $data,
         ]);
-
-        return response()->json(['success' => true]);
     }
 
-    // ── Advance stage ────────────────────────────────────────────────────────
-    public function advance(string $ticketId)
+    public function dismissRejectionNotice()
     {
-        $user   = $this->currentUser();
-        if (!$user->isAdmin()) {
-            return response()->json(['success' => false, 'message' => 'Hanya IT SIM yang bisa advance stage.'], 403);
-        }
-
-        $ticket = Ticket::where('ticket_id', $ticketId)->firstOrFail();
-        $stages = Ticket::STAGES;
-        $idx    = array_search($ticket->status, $stages);
-
-        if ($idx === false || $idx >= count($stages) - 1) {
-            return response()->json(['success' => false, 'message' => 'Sudah di stage terakhir.']);
-        }
-
-        $nextStage = $stages[$idx + 1];
-        $stageLog  = $ticket->stage_log ?? [];
-        $stageLog[$nextStage] = now()->toISOString();
-
-        $updates = ['status' => $nextStage, 'stage_log' => $stageLog];
-        if ($nextStage === 'golive') {
-            $updates['closed_at'] = now();
-        }
-
-        $ticket->update($updates);
-
-        Comment::create([
-            'ticket_id' => $ticket->id,
-            'user_id'   => $user->id,
-            'text'      => "⏩ Stage dimajukan ke **" . Ticket::STAGE_LABELS[$nextStage] . "** oleh {$user->name}.",
-        ]);
-
-        return response()->json(['success' => true, 'next_stage' => $nextStage]);
+        $user = $this->currentUser();
+        Cache::forget("rejected_ticket_{$user->id}");
+        return response()->json(['success' => true]);
     }
 
     // ── Tutup tiket (closed) ──────────────────────────────────────────────────
     public function close(string $ticketId)
     {
         $user   = $this->currentUser();
+        if (!in_array($user->type, ['it', 'it_manager'])) {
+            return response()->json(['success' => false, 'message' => 'Hanya IT SIM yang bisa menutup tiket.'], 403);
+        }
         $ticket = Ticket::where('ticket_id', $ticketId)->firstOrFail();
         $ticket->update(['closed_at' => now()]);
 
@@ -241,6 +283,17 @@ class TicketController extends Controller
             'text'      => "🔒 Tiket ditutup oleh {$user->name}.",
         ]);
 
+        // Notifikasi ke creator
+        if ($ticket->creator_id && $ticket->creator_id !== $user->id) {
+            Notification::send(
+                $ticket->creator_id,
+                'ticket_closed',
+                'Tiket Ditutup 🔒',
+                "Tiket {$ticket->ticket_id} ({$ticket->title}) telah ditutup oleh {$user->name}.",
+                $ticket->ticket_id
+            );
+        }
+
         return response()->json(['success' => true]);
     }
 
@@ -248,7 +301,7 @@ class TicketController extends Controller
     public function destroy(string $ticketId)
     {
         $user = $this->currentUser();
-        if (!$user->isAdmin()) {
+        if (!in_array($user->type, ['it', 'it_manager'])) {
             return response()->json(['success' => false, 'message' => 'Akses ditolak.'], 403);
         }
 
@@ -268,8 +321,8 @@ class TicketController extends Controller
     public function reassign(Request $request, string $ticketId)
     {
         $user   = $this->currentUser();
-        if (!$user->isAdmin()) {
-            return response()->json(['success' => false], 403);
+        if ($user->type !== 'it_manager') {
+            return response()->json(['success' => false, 'message' => 'Hanya Manager IT yang bisa melakukan reassign.'], 403);
         }
 
         $request->validate(['assignee_id' => 'required|exists:users,id']);
@@ -284,6 +337,17 @@ class TicketController extends Controller
             'text'      => "🔄 Tiket di-reassign ke {$assignee->name} oleh {$user->name}.",
         ]);
 
+        // Notifikasi ke assignee baru
+        if ($assignee->id !== $user->id) {
+            Notification::send(
+                $assignee->id,
+                'ticket_assigned',
+                'Tiket Di-assign ke Anda 🔄',
+                "Tiket {$ticket->ticket_id} ({$ticket->title}) di-assign ke Anda oleh {$user->name}.",
+                $ticket->ticket_id
+            );
+        }
+
         return response()->json(['success' => true]);
     }
 
@@ -294,11 +358,31 @@ class TicketController extends Controller
         $user   = $this->currentUser();
         $ticket = Ticket::where('ticket_id', $ticketId)->firstOrFail();
 
+        // Role 'user' hanya boleh komentar di tiket miliknya sendiri
+        if ($user->type === 'user' && $ticket->creator_id !== $user->id) {
+            abort(403, 'Akses ditolak.');
+        }
+
         $comment = Comment::create([
             'ticket_id' => $ticket->id,
             'user_id'   => $user->id,
             'text'      => $request->text,
         ]);
+
+        // Notifikasi ke pihak lain di tiket (bukan si pengomentar)
+        $recipients = collect([$ticket->creator_id, $ticket->assignee_id])
+            ->filter(fn($id) => $id && $id !== $user->id)
+            ->unique();
+
+        foreach ($recipients as $recipientId) {
+            Notification::send(
+                $recipientId,
+                'comment_added',
+                'Komentar Baru 💬',
+                "{$user->name} menambahkan komentar di tiket {$ticket->ticket_id}: \"{$request->text}\"",
+                $ticket->ticket_id
+            );
+        }
 
         return response()->json([
             'success' => true,
@@ -316,8 +400,218 @@ class TicketController extends Controller
     // ── Download lampiran ─────────────────────────────────────────────────────
     public function downloadAttachment(int $id)
     {
-        $att = Attachment::findOrFail($id);
+        $user = $this->currentUser();
+        $att  = Attachment::with('ticket')->findOrFail($id);
+
+        // Role 'user' hanya boleh download lampiran dari tiket miliknya sendiri
+        if ($user->type === 'user' && $att->ticket->creator_id !== $user->id) {
+            abort(403, 'Akses ditolak.');
+        }
+
         return Storage::disk('local')->download($att->stored_name, $att->original_name);
+    }
+
+    // ── Request Freeze ────────────────────────────────────────────────────────
+    public function requestFreeze(Request $request, string $ticketId)
+    {
+        $user = $this->currentUser();
+        if (!$user->isAdmin()) {
+            return response()->json(['success' => false, 'message' => 'Hanya IT SIM yang bisa mengajukan freeze.'], 403);
+        }
+
+        $request->validate([
+            'duration_days' => 'required|integer|min:1|max:365',
+            'reason'        => 'required|string|max:1000',
+        ]);
+
+        $ticket = Ticket::where('ticket_id', $ticketId)->firstOrFail();
+
+        if ($ticket->approval !== 'approved' || $ticket->closed_at) {
+            return response()->json(['success' => false, 'message' => 'Tiket harus dalam status Berjalan untuk di-freeze.'], 422);
+        }
+        if ($ticket->freeze_status) {
+            return response()->json(['success' => false, 'message' => 'Tiket sudah dalam proses freeze atau menunggu persetujuan.'], 422);
+        }
+
+        $freeze = TicketFreeze::create([
+            'ticket_id'     => $ticket->id,
+            'requested_by'  => $user->id,
+            'duration_days' => $request->duration_days,
+            'reason'        => $request->reason,
+            'status'        => 'pending_approval',
+        ]);
+
+        $ticket->update(['freeze_status' => 'pending_approval']);
+
+        Comment::create([
+            'ticket_id' => $ticket->id,
+            'user_id'   => $user->id,
+            'text'      => "⏸ Request Pending/Freeze {$request->duration_days} hari oleh {$user->name}.\nAlasan: {$request->reason}\nMenunggu persetujuan manager.",
+        ]);
+
+        // Notifikasi ke semua manager
+        $managers = User::where('type', 'manager')->get();
+        foreach ($managers as $manager) {
+            Notification::send(
+                $manager->id,
+                'freeze_requested',
+                'Request Freeze Tiket ⏸',
+                "{$user->name} mengajukan freeze {$request->duration_days} hari untuk tiket {$ticket->ticket_id} ({$ticket->title}). Alasan: {$request->reason}",
+                $ticket->ticket_id
+            );
+        }
+
+        return response()->json(['success' => true, 'freeze_id' => $freeze->id]);
+    }
+
+    // ── Approve Freeze ────────────────────────────────────────────────────────
+    public function approveFreeze(int $freezeId)
+    {
+        $user = $this->currentUser();
+        if ($user->type !== 'manager') {
+            return response()->json(['success' => false, 'message' => 'Hanya Manager yang bisa menyetujui freeze.'], 403);
+        }
+
+        $freeze = TicketFreeze::with('ticket')->findOrFail($freezeId);
+
+        if ($freeze->status !== 'pending_approval') {
+            return response()->json(['success' => false, 'message' => 'Request freeze ini sudah diproses.'], 422);
+        }
+
+        $now         = now();
+        $freezeEnds  = $now->copy()->addDays($freeze->duration_days);
+
+        $freeze->update([
+            'status'           => 'approved',
+            'approved_by'      => $user->id,
+            'approved_at'      => $now,
+            'freeze_starts_at' => $now,
+            'freeze_ends_at'   => $freezeEnds,
+        ]);
+
+        $ticket = $freeze->ticket;
+        // Perpanjang due_date sesuai durasi freeze yang disetujui
+        $ticket->update([
+            'freeze_status' => 'active',
+            'due_date'      => $ticket->due_date->addDays($freeze->duration_days),
+        ]);
+
+        Comment::create([
+            'ticket_id' => $ticket->id,
+            'user_id'   => $user->id,
+            'text'      => "✅ Request freeze disetujui oleh {$user->name}.\nTiket di-freeze hingga {$freezeEnds->format('d M Y H:i')}. SLA dihentikan sementara.",
+        ]);
+
+        $recipients = collect([$freeze->requested_by, $ticket->creator_id])->filter()->unique();
+        foreach ($recipients as $recipientId) {
+            Notification::send(
+                $recipientId,
+                'freeze_approved',
+                'Freeze Disetujui ✅',
+                "Freeze tiket {$ticket->ticket_id} ({$ticket->title}) disetujui oleh {$user->name}. Freeze aktif hingga {$freezeEnds->format('d M Y')}.",
+                $ticket->ticket_id
+            );
+        }
+
+        return response()->json(['success' => true]);
+    }
+
+    // ── Reject Freeze ─────────────────────────────────────────────────────────
+    public function rejectFreeze(int $freezeId)
+    {
+        $user = $this->currentUser();
+        if ($user->type !== 'manager') {
+            return response()->json(['success' => false, 'message' => 'Hanya Manager yang bisa menolak freeze.'], 403);
+        }
+
+        $freeze = TicketFreeze::with('ticket')->findOrFail($freezeId);
+
+        if ($freeze->status !== 'pending_approval') {
+            return response()->json(['success' => false, 'message' => 'Request freeze ini sudah diproses.'], 422);
+        }
+
+        $freeze->update([
+            'status'      => 'rejected',
+            'rejected_by' => $user->id,
+            'rejected_at' => now(),
+        ]);
+
+        $ticket = $freeze->ticket;
+        $ticket->update(['freeze_status' => null]);
+
+        Comment::create([
+            'ticket_id' => $ticket->id,
+            'user_id'   => $user->id,
+            'text'      => "❌ Request freeze ditolak oleh {$user->name}. SLA tetap berjalan normal.",
+        ]);
+
+        $recipients = collect([$freeze->requested_by, $ticket->creator_id])->filter()->unique();
+        foreach ($recipients as $recipientId) {
+            Notification::send(
+                $recipientId,
+                'freeze_rejected',
+                'Freeze Ditolak ❌',
+                "Request freeze tiket {$ticket->ticket_id} ({$ticket->title}) ditolak oleh {$user->name}. SLA tetap berjalan.",
+                $ticket->ticket_id
+            );
+        }
+
+        return response()->json(['success' => true]);
+    }
+
+    // ── Unfreeze Manual (IT) ──────────────────────────────────────────────────
+    public function unfreeze(string $ticketId)
+    {
+        $user = $this->currentUser();
+        if (!$user->isAdmin()) {
+            return response()->json(['success' => false, 'message' => 'Hanya IT SIM yang bisa mengaktifkan kembali tiket.'], 403);
+        }
+
+        $ticket = Ticket::where('ticket_id', $ticketId)->firstOrFail();
+
+        if ($ticket->freeze_status !== 'active') {
+            return response()->json(['success' => false, 'message' => 'Tiket tidak sedang dalam status freeze.'], 422);
+        }
+
+        $activeFreeze = TicketFreeze::where('ticket_id', $ticket->id)
+            ->where('status', 'approved')
+            ->latest()
+            ->firstOrFail();
+
+        $pausedSeconds    = (int) round(now()->timestamp - $activeFreeze->freeze_starts_at->timestamp);
+        $requestedSeconds = (int) ($activeFreeze->duration_days * 86400);
+        // Kembalikan hari yang tidak terpakai jika di-unfreeze lebih awal dari durasi yang disetujui
+        $unusedSeconds    = max(0, $requestedSeconds - $pausedSeconds);
+
+        $activeFreeze->update(['status' => 'completed']);
+        $ticket->update([
+            'freeze_status'         => null,
+            'freeze_paused_seconds' => $ticket->freeze_paused_seconds + $pausedSeconds,
+            'due_date'              => $unusedSeconds > 0
+                ? $ticket->due_date->subSeconds($unusedSeconds)
+                : $ticket->due_date,
+        ]);
+
+        Comment::create([
+            'ticket_id' => $ticket->id,
+            'user_id'   => $user->id,
+            'text'      => "▶ Tiket diaktifkan kembali oleh {$user->name}. SLA dilanjutkan (total dijeda: " . round($pausedSeconds / 86400, 1) . " hari).",
+        ]);
+
+        $recipients = collect([$activeFreeze->requested_by, $ticket->creator_id])
+            ->filter(fn($id) => $id && $id !== $user->id)
+            ->unique();
+        foreach ($recipients as $recipientId) {
+            Notification::send(
+                $recipientId,
+                'freeze_ended',
+                'Tiket Aktif Kembali ▶',
+                "Tiket {$ticket->ticket_id} ({$ticket->title}) telah diaktifkan kembali oleh {$user->name}. SLA dilanjutkan.",
+                $ticket->ticket_id
+            );
+        }
+
+        return response()->json(['success' => true]);
     }
 
     // ── Export Excel ──────────────────────────────────────────────────────────
@@ -326,74 +620,79 @@ class TicketController extends Controller
         $user = $this->currentUser();
         if ($user->type === 'user') abort(403);
 
-        $tickets = Ticket::with(['creator', 'assignee'])->orderByDesc('created_at')->get();
+        // Summary: pakai query agregat langsung ke DB, tidak load semua model
+        $total    = Ticket::count();
+        $antrean  = Ticket::where('approval', 'pending')->count();
+        $berjalan = Ticket::where('approval', 'approved')->whereNull('closed_at')->count();
+        $selesai  = Ticket::whereNotNull('closed_at')->count();
 
-        // Build data rows
-        $rows = $tickets->map(function ($t) {
-            $sla = $t->sla;
-            return [
-                'ID'              => $t->ticket_id,
-                'Judul'           => $t->title,
-                'Deskripsi'       => $t->desc ?? '—',
-                'Tipe'            => match($t->type) {
-                    'incident'    => 'Incident',
-                    'newproject'  => 'New Project',
-                    default       => 'Open Request',
-                },
-                'Status'          => Ticket::STAGE_LABELS[$t->status] ?? $t->status,
-                'Approval'        => ucfirst($t->approval),
-                'Kategori'        => $t->category ?? '—',
-                'Client'          => $t->client ?? '—',
-                'Assignee'        => $t->assignee?->name ?? '—',
-                'Creator'         => $t->creator?->name ?? '—',
-                'Disetujui Oleh'  => $t->approver?->name ?? '—',
-                'Tanggal Buat'    => $t->created_at->format('d M Y'),
-                'Due Date'        => $t->due_date?->format('d M Y') ?? '—',
-                'Tanggal Close'   => $t->closed_at?->format('d M Y') ?? '—',
-                'Lead Time'       => $t->lead_time,
-                'SLA Status'      => $sla['label'],
-                'Progress (%)'    => $t->progress,
-            ];
-        });
-
-        // Status summary
-        $statusSummary = collect(Ticket::STAGES)->map(fn($s) => [
-            'Stage'  => Ticket::STAGE_LABELS[$s],
-            'Jumlah' => $tickets->where('status', $s)->count(),
+        $statusSummary = collect([
+            ['State' => 'Antrean',  'Jumlah' => $antrean],
+            ['State' => 'Berjalan', 'Jumlah' => $berjalan],
+            ['State' => 'Selesai',  'Jumlah' => $selesai],
+            ['State' => 'TOTAL',    'Jumlah' => $total],
         ]);
-        $statusSummary->push(['Stage' => 'TOTAL', 'Jumlah' => $tickets->count()]);
 
-        // Assignee summary
-        $assigneeSummary = $tickets->groupBy('assignee_id')->map(function ($group) {
-            $assignee = $group->first()->assignee;
-            return [
-                'Assignee'    => $assignee?->name ?? '—',
-                'Total'       => $group->count(),
-                'On Progress' => $group->filter(fn($t) => $t->approval === 'approved' && $t->status !== 'golive' && !$t->closed_at)->count(),
-                'GO Live'     => $group->where('status', 'golive')->count(),
-                'Closed'      => $group->whereNotNull('closed_at')->count(),
-            ];
-        })->values();
+        $assigneeSummary = Ticket::with('assignee')
+            ->select('assignee_id',
+                DB::raw('COUNT(*) as total'),
+                DB::raw('SUM(CASE WHEN approval="approved" AND closed_at IS NULL THEN 1 ELSE 0 END) as on_progress'),
+                DB::raw('SUM(CASE WHEN closed_at IS NOT NULL THEN 1 ELSE 0 END) as selesai')
+            )
+            ->groupBy('assignee_id')
+            ->get()
+            ->map(fn($r) => [
+                'Assignee'    => $r->assignee?->name ?? '—',
+                'Total'       => $r->total,
+                'On Progress' => $r->on_progress,
+                'Selesai'     => $r->selesai,
+            ])->values();
 
-        $filename = 'GoTiket_Export_' . now()->format('Y-m-d') . '.xlsx';
+        $headers = ['ID','Judul','Deskripsi','Tipe','Status','Approval','Kategori','Client',
+                    'Assignee','Creator','Disetujui Oleh','Tanggal Buat','Due Date',
+                    'Tanggal Close','Lead Time','SLA Status','Progress (%)'];
 
-        // Gunakan PhpSpreadsheet langsung (tanpa package Maatwebsite)
+        $filename    = 'GoTiket_Export_' . now()->format('Y-m-d') . '.xlsx';
         $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
 
-        // Sheet 1: Semua Tiket
+        // Sheet 1: tulis per-chunk agar hemat memori
         $sheet1 = $spreadsheet->getActiveSheet()->setTitle('Semua Tiket');
-        if ($rows->isNotEmpty()) {
-            $headers = array_keys($rows->first());
-            $sheet1->fromArray([$headers], null, 'A1');
-            $sheet1->fromArray($rows->map(fn($r) => array_values($r))->toArray(), null, 'A2');
-            // Bold header
-            $sheet1->getStyle('A1:' . \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($headers)) . '1')
-                ->getFont()->setBold(true);
-        }
+        $sheet1->fromArray([$headers], null, 'A1');
+        $sheet1->getStyle('A1:Q1')->getFont()->setBold(true);
+
+        $rowIdx = 2;
+        Ticket::with(['creator', 'assignee', 'approver', 'tasks'])
+            ->orderByDesc('created_at')
+            ->chunk(200, function ($chunk) use ($sheet1, &$rowIdx) {
+                foreach ($chunk as $t) {
+                    $sla = $t->sla;
+                    $closed = !!$t->closed_at;
+                    $sheet1->fromArray([[
+                        $t->ticket_id,
+                        $t->title,
+                        $t->desc ?? '—',
+                        match($t->type) { 'incident' => 'Incident', 'newproject' => 'New Project', default => 'Open Request' },
+                        $closed ? 'Selesai' : ($t->approval === 'approved' ? 'Berjalan' : 'Antrean'),
+                        ucfirst($t->approval),
+                        $t->category ?? '—',
+                        $t->client ?? '—',
+                        $t->assignee?->name ?? '—',
+                        $t->creator?->name ?? '—',
+                        $t->approver?->name ?? '—',
+                        $t->created_at->format('d M Y'),
+                        $t->due_date?->format('d M Y') ?? '—',
+                        $t->closed_at?->format('d M Y') ?? '—',
+                        $t->lead_time,
+                        $sla['label'],
+                        $t->progress,
+                    ]], null, 'A' . $rowIdx);
+                    $rowIdx++;
+                }
+            });
 
         // Sheet 2: Ringkasan Status
         $sheet2 = $spreadsheet->createSheet()->setTitle('Ringkasan Status');
-        $sheet2->fromArray([['Stage', 'Jumlah']], null, 'A1');
+        $sheet2->fromArray([['State', 'Jumlah']], null, 'A1');
         $sheet2->fromArray($statusSummary->map(fn($r) => array_values($r))->toArray(), null, 'A2');
         $sheet2->getStyle('A1:B1')->getFont()->setBold(true);
 
@@ -402,7 +701,7 @@ class TicketController extends Controller
         if ($assigneeSummary->isNotEmpty()) {
             $sheet3->fromArray([array_keys($assigneeSummary->first())], null, 'A1');
             $sheet3->fromArray($assigneeSummary->map(fn($r) => array_values($r))->toArray(), null, 'A2');
-            $sheet3->getStyle('A1:E1')->getFont()->setBold(true);
+            $sheet3->getStyle('A1:D1')->getFont()->setBold(true);
         }
 
         $spreadsheet->setActiveSheetIndex(0);
@@ -418,14 +717,13 @@ class TicketController extends Controller
     // ── Helper: format tiket ke JSON ──────────────────────────────────────────
     private function formatTicket(Ticket $ticket, User $user): array
     {
-        $sla = $ticket->sla;
+        $sla    = $ticket->sla;
+        $freeze = $ticket->currentFreeze;
         return [
             'id'          => $ticket->ticket_id,
             'title'       => $ticket->title,
             'desc'        => $ticket->desc,
             'type'        => $ticket->type,
-            'status'      => $ticket->status,
-            'status_label'=> Ticket::STAGE_LABELS[$ticket->status] ?? $ticket->status,
             'approval'    => $ticket->approval,
             'category'    => $ticket->category,
             'client'      => $ticket->client,
@@ -439,12 +737,20 @@ class TicketController extends Controller
             'lead_time'   => $ticket->lead_time,
             'progress'    => $ticket->progress,
             'sla'         => $sla,
-            'stage_log'   => $ticket->stage_log ?? [],
-            'stage_due'   => $ticket->stage_due ?? [],
-            'next_stage'  => $ticket->next_stage,
-            'can_advance' => $user->isAdmin() && $ticket->approval === 'approved' && $ticket->status !== 'golive',
             'can_delete'  => $user->isAdmin(),
-            'tasks'       => $ticket->tasks->map(fn($t) => ['id' => $t->id, 'title' => $t->title, 'status' => $t->status]),
+            'freeze_status'    => $ticket->freeze_status,
+            'freeze_id'        => $freeze?->id,
+            'freeze_duration'  => $freeze?->duration_days,
+            'freeze_reason'    => $freeze?->reason,
+            'freeze_requester' => $freeze?->requester?->name,
+            'freeze_ends_at'   => $freeze?->freeze_ends_at?->format('d M Y H:i'),
+            'tasks'       => $ticket->tasks->map(fn($t) => [
+                'id'       => $t->id,
+                'title'    => $t->title,
+                'status'   => $t->status,
+                'due_date' => $t->due_date?->format('d M Y'),
+                'notes'    => $t->notes,
+            ]),
             'comments'    => $ticket->comments->map(fn($c) => [
                 'user'     => $c->user?->name,
                 'initials' => $c->user?->initials,

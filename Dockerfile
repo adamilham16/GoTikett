@@ -13,6 +13,7 @@ RUN composer create-project laravel/laravel:^12.0 . --prefer-dist --no-interacti
 COPY app/       app/
 COPY bootstrap/ bootstrap/
 COPY database/  database/
+COPY public/    public/
 COPY resources/ resources/
 COPY routes/    routes/
 
@@ -82,15 +83,16 @@ COPY docker/entrypoint.sh               /entrypoint.sh
 
 RUN chmod +x /entrypoint.sh
 
-# Buat direktori storage
+# Buat direktori storage dan backup
 RUN mkdir -p storage/app/attachments \
              storage/app/public \
              storage/framework/cache/data \
              storage/framework/sessions \
              storage/framework/views \
              storage/logs \
-    && chown -R www-data:www-data storage/ bootstrap/cache/ \
-    && chmod -R 775 storage/ bootstrap/cache/
+             /var/backups/gotiket \
+    && chown -R www-data:www-data storage/ bootstrap/cache/ /var/backups/gotiket \
+    && chmod -R 775 storage/ bootstrap/cache/ /var/backups/gotiket
 
 EXPOSE 80
 

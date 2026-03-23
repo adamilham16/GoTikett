@@ -14,12 +14,12 @@ class RoleMiddleware
      */
     public function handle(Request $request, Closure $next, string ...$roles): Response
     {
-        $userId = session('user_id');
-        if (!$userId) {
+        if (!session('user_id')) {
             return redirect()->route('login');
         }
 
-        $user = User::find($userId);
+        // Gunakan user yang sudah di-load oleh AuthSession, hindari query ulang
+        $user = $request->attributes->get('auth_user') ?? User::find(session('user_id'));
         if (!$user || !in_array($user->type, $roles)) {
             abort(403, 'Akses ditolak.');
         }
