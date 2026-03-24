@@ -43,13 +43,11 @@ class TicketController extends Controller
         }
         // Role 'manager' hanya melihat tiket dari User yang approver-nya adalah manager ini
         if ($user->type === 'manager') {
-            $userIds = User::where('approver_id', $user->id)->pluck('id');
-            $query->whereIn('creator_id', $userIds);
+            $query->whereIn('creator_id', User::where('approver_id', $user->id)->select('id'));
         }
         // Role 'it_manager' melihat semua tiket yang assignee-nya IT SIM
         if ($user->type === 'it_manager') {
-            $itIds = User::where('type', 'it')->pluck('id');
-            $query->whereIn('assignee_id', $itIds);
+            $query->whereIn('assignee_id', User::where('type', 'it')->select('id'));
         }
 
         $tickets = $query->get();
@@ -301,7 +299,7 @@ class TicketController extends Controller
             return response()->json(['success' => false, 'message' => 'Akses ditolak.'], 403);
         }
 
-        $ticket = Ticket::where('ticket_id', $ticketId)->firstOrFail();
+        $ticket = Ticket::with('attachments')->where('ticket_id', $ticketId)->firstOrFail();
 
         // Hapus file lampiran dari storage
         foreach ($ticket->attachments as $att) {
@@ -445,17 +443,15 @@ class TicketController extends Controller
             'text'      => "⏸ Request Pending/Freeze {$request->duration_days} hari oleh {$user->name}.\nAlasan: {$request->reason}\nMenunggu persetujuan manager.",
         ]);
 
-        // Notifikasi ke semua manager
-        $managers = User::where('type', 'manager')->get();
-        foreach ($managers as $manager) {
-            Notification::send(
-                $manager->id,
-                'freeze_requested',
-                'Request Freeze Tiket ⏸',
-                "{$user->name} mengajukan freeze {$request->duration_days} hari untuk tiket {$ticket->ticket_id} ({$ticket->title}). Alasan: {$request->reason}",
-                $ticket->ticket_id
-            );
-        }
+        // Notifikasi ke semua manager (bulk insert)
+        $managerIds = User::where('type', 'manager')->pluck('id')->all();
+        Notification::sendMany(
+            $managerIds,
+            'freeze_requested',
+            'Request Freeze Tiket ⏸',
+            "{$user->name} mengajukan freeze {$request->duration_days} hari untuk tiket {$ticket->ticket_id} ({$ticket->title}). Alasan: {$request->reason}",
+            $ticket->ticket_id
+        );
 
         return response()->json(['success' => true, 'freeze_id' => $freeze->id]);
     }

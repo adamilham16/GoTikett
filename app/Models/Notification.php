@@ -23,4 +23,29 @@ class Notification extends Model
             'ticket_id' => $ticketId,
         ]);
     }
+
+    /**
+     * Buat notifikasi sekaligus untuk banyak user (single INSERT).
+     *
+     * @param int[] $userIds
+     */
+    public static function sendMany(array $userIds, string $type, string $title, string $message, ?string $ticketId = null): void
+    {
+        if (empty($userIds)) {
+            return;
+        }
+
+        $now  = now();
+        $rows = array_map(fn($id) => [
+            'user_id'    => $id,
+            'type'       => $type,
+            'title'      => $title,
+            'message'    => $message,
+            'ticket_id'  => $ticketId,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ], $userIds);
+
+        static::insert($rows);
+    }
 }

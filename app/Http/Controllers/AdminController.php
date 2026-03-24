@@ -200,13 +200,11 @@ class AdminController extends Controller
         }
         // Role 'manager' hanya melihat tiket dari User yang approver-nya adalah manager ini
         if ($user->type === 'manager') {
-            $userIds = User::where('approver_id', $user->id)->pluck('id');
-            $ticketQuery->whereIn('creator_id', $userIds);
+            $ticketQuery->whereIn('creator_id', User::where('approver_id', $user->id)->select('id'));
         }
         // Role 'it_manager' melihat semua tiket yang assignee-nya IT SIM
         if ($user->type === 'it_manager') {
-            $itIds = User::where('type', 'it')->pluck('id');
-            $ticketQuery->whereIn('assignee_id', $itIds);
+            $ticketQuery->whereIn('assignee_id', User::where('type', 'it')->select('id'));
         }
         $totalCount = $ticketQuery->count();
         $tickets    = $ticketQuery->limit($limit)->get();
