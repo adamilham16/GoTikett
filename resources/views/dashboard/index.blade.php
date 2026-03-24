@@ -304,6 +304,253 @@ tr:hover td{background:var(--surface2);}
 .sla-row-label{font-size:10.5px;font-weight:700;font-family:'JetBrains Mono',monospace;}
 .sla-mini-bar{height:4px;background:var(--border);border-radius:10px;overflow:hidden;}
 .sla-mini-fill{height:100%;border-radius:10px;transition:width .5s;}
+
+/* ══════════════════════════════════════════════════════════════
+   USER DASHBOARD — SCOPED UI/UX ENHANCEMENTS
+   Semua selector di bawah hanya berlaku di dalam
+   .user-stats-grid / .user-ticket-row / #ud-sla-list
+   Tidak ada dampak ke halaman atau widget lain.
+══════════════════════════════════════════════════════════════ */
+
+/* 1. SUMMARY CARDS — border kiri aksen + hover naik */
+.user-stats-grid .stat-card{border-left:3px solid transparent;transition:transform .2s ease,box-shadow .2s ease;}
+.user-stats-grid .stat-card.blue  {border-left-color:var(--accent);}
+.user-stats-grid .stat-card.green {border-left-color:var(--green);}
+.user-stats-grid .stat-card.orange{border-left-color:var(--orange);}
+.user-stats-grid .stat-card.teal  {border-left-color:var(--teal);}
+.user-stats-grid .stat-card:hover {transform:translateY(-4px);box-shadow:0 8px 24px rgba(8,145,178,.15);}
+/* icon & label sejajar dalam satu baris */
+.ud-card-top{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.ud-card-top .stat-icon{margin-bottom:0;flex-shrink:0;}
+.ud-card-top .stat-label{font-size:12px;color:var(--text2);font-weight:600;}
+/* trend badge opsional */
+.ud-stat-trend{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;color:var(--green);margin-top:6px;background:var(--green-bg);padding:2px 8px;border-radius:20px;width:fit-content;}
+.ud-stat-trend.neutral{color:var(--text3);background:var(--surface3);}
+
+/* 2. STATUS BADGE — pill penuh + ikon */
+.user-ticket-row .status-chip{padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;gap:4px;}
+.user-ticket-row .status-chip .dot{display:none;}
+.user-ticket-row .sc-closed::before   {content:'✓ ';}
+.user-ticket-row .sc-active::before   {content:'⏳ ';}
+.user-ticket-row .sc-pending::before  {content:'⌛ ';}
+.user-ticket-row .sc-frozen::before   {content:'🧊 ';}
+.user-ticket-row .sc-req-freeze::before{content:'⏸ ';}
+
+/* 3. DAFTAR TIKET — card ringan, hover naik */
+.user-ticket-list{padding:6px;gap:0;display:flex;flex-direction:column;}
+.user-ticket-row{
+  border-radius:10px!important;border:1px solid var(--border)!important;
+  margin:3px 0!important;padding:12px 14px!important;
+  transition:transform .18s ease,box-shadow .18s ease,background .15s,border-color .15s!important;
+}
+.user-ticket-row:last-child{border-bottom:1px solid var(--border)!important;margin-bottom:3px!important;}
+.user-ticket-row:hover{
+  background:rgba(240,249,252,.9)!important;
+  box-shadow:0 6px 20px rgba(8,145,178,.13);
+  transform:translateY(-2px);
+  border-color:var(--border2)!important;
+}
+/* judul tebal, underline saat hover */
+.utf-title{font-weight:700!important;font-size:13.5px;cursor:pointer;transition:color .15s;}
+.user-ticket-row:hover .utf-title{color:var(--accent);text-decoration:underline;text-underline-offset:2px;}
+/* ID badge kecil */
+.utf-id{font-size:10px!important;color:var(--text3)!important;background:var(--surface3);padding:2px 7px!important;border-radius:6px;width:auto!important;flex-shrink:0;}
+/* baris info tambahan di bawah judul */
+.utf-info-row{display:flex;align-items:center;gap:6px;margin-top:3px;}
+.utf-type-badge{font-size:10px;font-weight:600;padding:1px 7px;border-radius:10px;color:var(--text2);background:var(--surface3);}
+
+/* 4. PROGRESS BAR — lebih tebal + persentase */
+.ud-progress-wrap{display:flex;align-items:center;gap:8px;margin-top:6px;}
+.ud-progress-bar{flex:1;height:6px;background:var(--border);border-radius:4px;overflow:hidden;}
+.ud-progress-fill{height:100%;border-radius:4px;transition:width .5s ease;}
+.ud-progress-pct{font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--text3);flex-shrink:0;min-width:28px;text-align:right;}
+
+/* 5. FILTER TAB — tab aktif lebih tegas */
+.ud-tab{transition:all .2s ease;color:var(--text3);border-radius:6px;}
+.ud-tab.active{background:var(--accent)!important;color:#fff!important;border-radius:6px;box-shadow:0 2px 8px rgba(8,145,178,.25);}
+.ud-tab.active .ud-tab-count{opacity:1;background:rgba(255,255,255,.22);padding:0 5px;border-radius:10px;}
+.ud-tab:hover:not(.active){background:var(--surface3);color:var(--text);}
+.ud-type-btn{transition:all .18s ease;}
+.ud-type-btn:hover:not(.active){border-color:var(--accent);color:var(--accent);background:var(--accent-glow);}
+
+/* 6. SLA PANEL — scoped ke #ud-sla-list saja */
+#ud-sla-list .sla-row-item{
+  background:var(--surface2);border:1px solid var(--border);border-radius:10px;
+  padding:10px 12px;cursor:pointer;
+  transition:transform .18s ease,box-shadow .18s ease,border-color .15s;
+}
+#ud-sla-list .sla-row-item:hover{border-color:var(--border2);box-shadow:0 4px 12px rgba(8,145,178,.1);transform:translateY(-1px);}
+#ud-sla-list .sla-mini-bar{height:6px!important;border-radius:4px;margin-top:6px;}
+.ud-sla-meta{display:flex;align-items:center;justify-content:space-between;margin-top:4px;font-size:10px;font-family:'JetBrains Mono',monospace;}
+.ud-sla-pct{color:var(--text3);}
+.ud-sla-warn{display:inline-flex;align-items:center;gap:3px;font-weight:700;}
+.ud-sla-warn.ok  {color:var(--green);}
+.ud-sla-warn.warn{color:var(--yellow);}
+.ud-sla-warn.crit{color:var(--red);}
+
+/* 7. MICRO INTERACTIONS */
+.user-dashboard .btn{transition:all .2s ease;}
+.user-dashboard .btn-primary:hover{filter:brightness(.9);transform:translateY(-1px);}
+.user-dashboard .ud-banner{transition:transform .2s ease,box-shadow .2s ease;}
+.user-dashboard .ud-banner:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(8,145,178,.12);}
+
+/* ══ COMPACT LAYOUT OPTIMIZATION ══════════════════════════════
+   Semua scoped di bawah .user-dashboard atau selector spesifik.
+   Tidak ada dampak ke halaman lain.
+════════════════════════════════════════════════════════════════ */
+
+/* Header: kurangi spacing */
+.user-dashboard .user-dash-header{margin-bottom:12px;}
+.user-dashboard .user-dash-greeting{font-size:17px;}
+.user-dashboard .user-dash-sub{font-size:12px;margin-top:2px;}
+
+/* Stats grid: padding & gap lebih kecil */
+.user-stats-grid{gap:10px;}
+.user-stats-grid .stat-card{padding:12px 14px;}
+.user-stats-grid .stat-value{font-size:22px;margin-bottom:2px;}
+.ud-card-top{margin-bottom:8px;}
+.user-stats-grid .stat-sub{margin-top:3px;font-size:10.5px;}
+
+/* Filter row: tab + type filter dalam SATU baris horizontal */
+.ud-filter-row{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:8px;flex-wrap:wrap;
+  padding:8px 14px;
+  border-bottom:1px solid var(--border);
+  background:rgba(248,252,255,.6);
+}
+.ud-filter-row .ud-tabs{margin:0;flex-shrink:0;}
+.ud-filter-row .ud-type-filters{flex-wrap:nowrap;gap:3px;}
+.ud-filter-row .ud-type-btn{padding:2px 8px;font-size:10.5px;}
+
+/* Ticket section header: compact */
+.user-dashboard .user-ticket-header{padding:10px 14px;}
+
+/* Ticket list: card lebih compact */
+.user-ticket-list{padding:4px 6px;}
+.user-ticket-row{padding:9px 12px!important;margin:2px 0!important;}
+.utf-title{font-size:13px!important;}
+
+/* Meta compact: type badge + progress bar + % dalam SATU baris */
+.utf-compact-meta{display:flex;align-items:center;gap:6px;margin-top:4px;}
+.utf-compact-meta .utf-type-badge{flex-shrink:0;}
+.utf-compact-meta .ud-progress-bar{flex:1;height:4px;}
+.utf-compact-meta .ud-progress-fill{height:4px;}
+.utf-compact-meta .ud-progress-pct{font-size:9.5px;min-width:24px;}
+.utf-task-count{font-size:9.5px;color:var(--text3);flex-shrink:0;font-family:'JetBrains Mono',monospace;}
+
+/* Status badge: label pendek, tidak melebar */
+.user-ticket-row .utf-status{flex-shrink:0;max-width:130px;}
+.user-ticket-row .status-chip{white-space:nowrap;}
+
+/* SLA panel: compact */
+#ud-sla-list{padding:6px 10px!important;gap:6px!important;}
+#ud-sla-list .sla-row-item{padding:8px 10px;}
+
+/* Banner: compact — scoped ke .user-dashboard */
+.user-dashboard #ud-banners{margin-bottom:8px;}
+.user-dashboard .ud-banner{padding:10px 14px!important;}
+
+/* ══ WIDE 2-COLUMN LAYOUT ════════════════════════════════════
+   Ekspansi container + layout kiri(tiket) / kanan(SLA+insight)
+   Semua scoped dalam .user-dashboard — zero global impact.
+════════════════════════════════════════════════════════════ */
+.user-dashboard{max-width:1400px!important;}
+
+/* Grid utama: 2 kolom */
+.ud-main-grid{
+  display:grid;
+  grid-template-columns:1fr 290px;
+  gap:14px;
+  align-items:start;
+}
+.ud-left-col{min-width:0;}
+
+/* Kolom kanan: sticky saat scroll */
+.ud-right-col{
+  display:flex;flex-direction:column;gap:12px;
+  position:sticky;top:72px;
+}
+
+/* Quick-info card di kolom kanan */
+.ud-quick-card{
+  background:rgba(255,255,255,.92);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  overflow:hidden;
+  box-shadow:0 2px 10px rgba(8,145,178,.07);
+}
+.ud-quick-header{
+  padding:10px 14px;border-bottom:1px solid var(--border);
+  background:var(--surface2);
+  font-size:12px;font-weight:700;color:var(--text2);
+  text-transform:uppercase;letter-spacing:.6px;
+}
+.ud-quick-body{padding:12px 14px;display:flex;flex-direction:column;gap:10px;}
+.ud-qs-row{display:flex;align-items:center;justify-content:space-between;}
+.ud-qs-label{font-size:12px;color:var(--text2);}
+.ud-qs-num{font-size:15px;font-weight:700;font-family:'JetBrains Mono',monospace;}
+
+/* SLA panel di kolom kanan: scroll-able jika banyak item */
+.ud-right-col #ud-stage-panel{flex:1;}
+.ud-right-col #ud-sla-list{max-height:calc(100vh - 340px);overflow-y:auto;}
+
+/* SLA empty state */
+.ud-sla-empty{
+  text-align:center;padding:24px 12px;color:var(--text3);
+}
+.ud-sla-empty-icon{font-size:28px;margin-bottom:8px;}
+.ud-sla-empty-title{font-size:12px;font-weight:600;color:var(--text2);}
+.ud-sla-empty-sub{font-size:11px;margin-top:3px;line-height:1.5;}
+
+/* Responsive: di layar kecil kembali ke 1 kolom */
+@media(max-width:900px){
+  .ud-main-grid{grid-template-columns:1fr;}
+  .ud-right-col{position:static;}
+  .user-dashboard{max-width:100%!important;}
+}
+
+/* ══ IT / MANAGER BOARD — SCOPED ENHANCEMENTS ══════════════════
+   Scoped ke #it-dashboard dan #board-view .ticket-card.
+   Zero impact ke user-dashboard atau halaman lain.
+══════════════════════════════════════════════════════════════ */
+
+/* Stat cards IT: border kiri aksen (scoped) */
+#it-dashboard .stat-card{border-left:3px solid transparent;transition:transform .2s ease,box-shadow .2s ease;}
+#it-dashboard .stat-card.blue  {border-left-color:var(--accent);}
+#it-dashboard .stat-card.yellow{border-left-color:var(--yellow);}
+#it-dashboard .stat-card.orange{border-left-color:var(--orange);}
+#it-dashboard .stat-card.green {border-left-color:var(--green);}
+#it-dashboard .stat-card:hover {transform:translateY(-3px);box-shadow:0 8px 24px rgba(8,145,178,.15);}
+
+/* Ticket card: hover lebih kuat */
+#board-view .ticket-card{transition:transform .18s ease,box-shadow .18s ease,border-color .15s!important;}
+#board-view .ticket-card:hover{transform:translateY(-3px)!important;box-shadow:0 10px 28px rgba(8,145,178,.22)!important;border-color:var(--border2)!important;}
+
+/* Header row: ID + tag + comment badge sejajar */
+.tc-header-row{display:flex;align-items:center;gap:4px;margin-bottom:5px;flex-wrap:wrap;}
+.tc-header-row .ticket-id{margin-bottom:0;flex-shrink:0;}
+
+/* Progress bar lebih tebal + persentase */
+.tc-progress-row{display:flex;align-items:center;gap:6px;margin-top:6px;}
+.tc-progress-track{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden;}
+.tc-progress-bar{height:100%;border-radius:3px;transition:width .5s ease;}
+.tc-pct-label{font-size:9.5px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--text3);flex-shrink:0;min-width:26px;text-align:right;}
+
+/* Baris task info + status */
+.tc-info-row{display:flex;align-items:center;justify-content:space-between;margin-top:3px;margin-bottom:5px;}
+.tc-task-info{font-size:10px;color:var(--text3);font-weight:500;}
+.tc-state-lbl{font-size:10px;font-weight:700;}
+
+/* SLA chip dengan ikon */
+.tc-sla-chip{display:inline-flex;align-items:center;gap:2px;font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace;}
+
+/* Comment badge */
+.tc-comment-badge{display:inline-flex;align-items:center;gap:2px;font-size:9.5px;font-weight:700;background:var(--accent-glow);color:var(--accent);border:1px solid rgba(8,145,178,.25);border-radius:10px;padding:1px 5px;flex-shrink:0;}
+
+/* Creator/requester baris bawah card */
+.tc-creator{font-size:10px;color:var(--text3);margin-top:5px;padding-top:5px;border-top:1px solid var(--border);display:flex;align-items:center;gap:4px;}
 </style>
 </head>
 <body>
@@ -400,40 +647,73 @@ tr:hover td{background:var(--surface2);}
         <div class="user-dash-greeting" id="ud-greeting">Selamat datang, {{ $user->name }}!</div>
         <div class="user-dash-sub" id="ud-sub">Berikut ringkasan tiket kamu</div>
       </div>
-      <div class="user-stats-grid" style="margin-bottom:14px">
-        <div class="stat-card blue"><div class="stat-icon blue">📋</div><div class="stat-value" id="ovv-total">0</div><div class="stat-label">Total Tiket</div><div class="stat-sub">Semua tiket kamu</div></div>
-        <div class="stat-card orange"><div class="stat-icon orange">💻</div><div class="stat-value" id="ovv-prog">0</div><div class="stat-label">Sedang Berjalan</div><div class="stat-sub">Dalam pengerjaan</div></div>
-        <div class="stat-card green"><div class="stat-icon green">✅</div><div class="stat-value" id="ovv-done">0</div><div class="stat-label">Selesai / Tayang</div><div class="stat-sub">Sudah production</div></div>
-        <div class="stat-card teal"><div class="stat-icon" style="background:var(--teal-bg)">🔒</div><div class="stat-value" id="ovv-closed">0</div><div class="stat-label">Ditutup</div><div class="stat-sub">Tiket ditutup</div></div>
+      <div class="user-stats-grid" style="margin-bottom:10px">
+        <div class="stat-card blue"><div class="ud-card-top"><div class="stat-icon blue">📋</div><div class="stat-label">Total Tiket</div></div><div class="stat-value" id="ovv-total">0</div><div class="stat-sub">Semua tiket kamu</div><div class="ud-stat-trend" id="ovv-trend-total" style="display:none"></div></div>
+        <div class="stat-card orange"><div class="ud-card-top"><div class="stat-icon orange">💻</div><div class="stat-label">Sedang Berjalan</div></div><div class="stat-value" id="ovv-prog">0</div><div class="stat-sub">Dalam pengerjaan</div><div class="ud-stat-trend" id="ovv-trend-prog" style="display:none"></div></div>
+        <div class="stat-card green"><div class="ud-card-top"><div class="stat-icon green">✅</div><div class="stat-label">Selesai / Tayang</div></div><div class="stat-value" id="ovv-done">0</div><div class="stat-sub">Sudah production</div><div class="ud-stat-trend" id="ovv-trend-done" style="display:none"></div></div>
+        <div class="stat-card teal"><div class="ud-card-top"><div class="stat-icon" style="background:var(--teal-bg)">🔒</div><div class="stat-label">Ditutup</div></div><div class="stat-value" id="ovv-closed">0</div><div class="stat-sub">Tiket ditutup</div><div class="ud-stat-trend neutral" id="ovv-trend-closed" style="display:none"></div></div>
       </div>
-      <div id="ud-banners" style="margin-bottom:10px"></div>
-      <div class="user-ticket-section">
-        <div class="user-ticket-header">
-          <span class="user-ticket-title">📄 Tiket Saya</span>
-          <span id="ud-ticket-count" style="font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace"></span>
-        </div>
-        <div style="padding:10px 16px;border-bottom:1px solid var(--border);background:rgba(248,252,255,.6);display:flex;flex-direction:column;gap:8px">
-          <div class="ud-tabs" id="ud-tabs">
-            <button class="ud-tab active" onclick="udSetTab('all',this)">Semua<span class="ud-tab-count" id="udt-all">0</span></button>
-            <button class="ud-tab" onclick="udSetTab('active',this)">Aktif<span class="ud-tab-count" id="udt-active">0</span></button>
-            <button class="ud-tab" onclick="udSetTab('golive',this)">Tayang<span class="ud-tab-count" id="udt-golive">0</span></button>
-            <button class="ud-tab" onclick="udSetTab('closed',this)">Ditutup<span class="ud-tab-count" id="udt-closed">0</span></button>
+      <div id="ud-banners" style="margin-bottom:8px"></div>
+      <div class="ud-main-grid">
+
+        <!-- ── Kolom Kiri (70%): Daftar Tiket ── -->
+        <div class="ud-left-col">
+          <div class="user-ticket-section">
+            <div class="user-ticket-header">
+              <span class="user-ticket-title">📄 Tiket Saya</span>
+              <span id="ud-ticket-count" style="font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace"></span>
+            </div>
+            <div class="ud-filter-row">
+              <div class="ud-tabs" id="ud-tabs">
+                <button class="ud-tab active" onclick="udSetTab('all',this)">Semua<span class="ud-tab-count" id="udt-all">0</span></button>
+                <button class="ud-tab" onclick="udSetTab('active',this)">Aktif<span class="ud-tab-count" id="udt-active">0</span></button>
+                <button class="ud-tab" onclick="udSetTab('golive',this)">Tayang<span class="ud-tab-count" id="udt-golive">0</span></button>
+                <button class="ud-tab" onclick="udSetTab('closed',this)">Ditutup<span class="ud-tab-count" id="udt-closed">0</span></button>
+              </div>
+              <div class="ud-type-filters">
+                <button class="ud-type-btn active" onclick="udSetType('all',this)">Semua Tipe</button>
+                <button class="ud-type-btn" onclick="udSetType('incident',this)">Insiden</button>
+                <button class="ud-type-btn" onclick="udSetType('newproject',this)">Proyek Baru</button>
+                <button class="ud-type-btn" onclick="udSetType('openrequest',this)">Open Request</button>
+              </div>
+            </div>
+            <div id="ud-ticket-list" class="user-ticket-list"></div>
           </div>
-          <div class="ud-type-filters">
-            <button class="ud-type-btn active" onclick="udSetType('all',this)">Semua Tipe</button>
-            <button class="ud-type-btn" onclick="udSetType('incident',this)">Insiden</button>
-            <button class="ud-type-btn" onclick="udSetType('newproject',this)">Proyek Baru</button>
-            <button class="ud-type-btn" onclick="udSetType('openrequest',this)">Open Request</button>
+        </div>
+
+        <!-- ── Kolom Kanan (30%): Insight + SLA ── -->
+        <div class="ud-right-col">
+
+          <!-- Quick-info card: ringkasan + aksi cepat -->
+          <div class="ud-quick-card">
+            <div class="ud-quick-header">⚡ Ringkasan & Aksi</div>
+            <div class="ud-quick-body">
+              <div class="ud-qs-row">
+                <span class="ud-qs-label">🟠 Sedang Berjalan</span>
+                <span class="ud-qs-num" id="qs-active" style="color:var(--orange)">0</span>
+              </div>
+              <div class="ud-qs-row">
+                <span class="ud-qs-label">⌛ Menunggu</span>
+                <span class="ud-qs-num" id="qs-pending" style="color:var(--yellow)">0</span>
+              </div>
+              <div class="ud-qs-row">
+                <span class="ud-qs-label">✅ Selesai</span>
+                <span class="ud-qs-num" id="qs-done" style="color:var(--green)">0</span>
+              </div>
+              <button class="btn btn-primary" onclick="openCreate()" style="width:100%;justify-content:center;font-size:12px;margin-top:2px">+ Buat Tiket Baru</button>
+            </div>
           </div>
+
+          <!-- SLA Panel: selalu tampil di kolom kanan -->
+          <div id="ud-stage-panel" style="background:rgba(255,255,255,0.90);backdrop-filter:blur(8px);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;box-shadow:0 2px 10px rgba(8,145,178,0.07)">
+            <div style="padding:10px 14px;border-bottom:1px solid var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:space-between">
+              <span style="font-size:12px;font-weight:700">📊 Progres SLA Aktif</span>
+              <span id="ud-sla-count" style="font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace"></span>
+            </div>
+            <div id="ud-sla-list" style="padding:8px 10px;display:flex;flex-direction:column;gap:6px"></div>
+          </div>
+
         </div>
-        <div id="ud-ticket-list" class="user-ticket-list"></div>
-      </div>
-      <!-- Riwayat Tahap tiket user -->
-      <div id="ud-stage-panel" style="background:rgba(255,255,255,0.90);backdrop-filter:blur(8px);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;box-shadow:0 2px 10px rgba(8,145,178,0.07);margin-top:14px;display:none">
-        <div style="padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface2)">
-          <span style="font-size:13px;font-weight:700">📊 Progres SLA Tiket Saya</span>
-        </div>
-        <div id="ud-sla-list" style="padding:8px 12px;display:flex;flex-direction:column;gap:8px"></div>
       </div>
     </div>
 
@@ -905,12 +1185,18 @@ function renderSLAPanel(){
     const sla=t.sla||{};
     const bar=sla.bar||'var(--text3)';
     const pct=sla.pct||0;
+    const warnCls=sla.cls==='sla-over'?'crit':sla.cls==='sla-warn'?'warn':'ok';
+    const warnIcon=sla.cls==='sla-over'?'⚠️':sla.cls==='sla-warn'?'⏰':'✓';
     return `<div class="sla-row-item" style="cursor:pointer" onclick="openDetail('${t.id}')">
       <div class="sla-row-top">
         <span class="sla-row-title" title="${t.title}">${t.id} · ${t.title}</span>
         <span class="sla-row-label ${sla.cls||''}">${sla.label||'—'}</span>
       </div>
       <div class="sla-mini-bar"><div class="sla-mini-fill" style="width:${pct}%;background:${bar}"></div></div>
+      <div class="ud-sla-meta">
+        <span class="ud-sla-pct">${pct}% digunakan</span>
+        <span class="ud-sla-warn ${warnCls}">${warnIcon} ${sla.label||'—'}</span>
+      </div>
     </div>`;
   }).join('');
 }
@@ -951,6 +1237,21 @@ function renderUserDashboard(){
   document.getElementById('ovv-prog').textContent=active.length;
   document.getElementById('ovv-done').textContent=done.length;
   document.getElementById('ovv-closed').textContent=done.length;
+  // Trend badge — tiket baru / selesai dalam 7 hari terakhir
+  (function(){
+    const weekAgo=Date.now()-7*24*60*60*1000;
+    const pd=s=>{if(!s)return 0;const d=new Date(s);return isNaN(d)?0:d.getTime();};
+    const setTrend=(id,val,suffix)=>{
+      const el=document.getElementById(id);if(!el)return;
+      if(val>0){el.textContent='+'+val+' '+suffix;el.className='ud-stat-trend';}
+      else{el.textContent='— '+suffix;el.className='ud-stat-trend neutral';}
+      el.style.display='';
+    };
+    setTrend('ovv-trend-total',mine.filter(t=>pd(t.created_at)>weekAgo).length,'7 hari ini');
+    setTrend('ovv-trend-prog',active.filter(t=>pd(t.created_at)>weekAgo).length,'7 hari ini');
+    setTrend('ovv-trend-done',done.filter(t=>pd(t.closed_at)>weekAgo).length,'7 hari ini');
+    setTrend('ovv-trend-closed',done.length,'total ditutup');
+  })();
   // Banner pending + banner penolakan
   const bannerEl=document.getElementById('ud-banners');
   if(bannerEl){
@@ -987,36 +1288,64 @@ function renderUserDashboard(){
   else if(udTab2==='golive'||udTab2==='closed') filtered=done;
   if(udTypeFilt!=='all') filtered=filtered.filter(t=>t.type===udTypeFilt);
   document.getElementById('ud-ticket-count').textContent=filtered.length+' tiket';
-  // Render user SLA panel
-  const slaPanel=document.getElementById('ud-stage-panel');
+  // Quick summary di kolom kanan
+  const qEl=id=>document.getElementById(id);
+  if(qEl('qs-active'))  qEl('qs-active').textContent=active.length;
+  if(qEl('qs-pending')) qEl('qs-pending').textContent=pending.length;
+  if(qEl('qs-done'))    qEl('qs-done').textContent=done.length;
+  // Render SLA panel — selalu tampil di kolom kanan (tidak hide)
   const slaList=document.getElementById('ud-sla-list');
-  if(slaPanel&&slaList){
-    const active=mine.filter(t=>t.approval==='approved'&&!t.closed_at);
-    slaPanel.style.display=active.length?'':'none';
-    slaList.innerHTML=active.sort((a,b)=>(b.sla?.pct||0)-(a.sla?.pct||0)).slice(0,5).map(t=>{
-      const sla=t.sla||{};
-      return `<div class="sla-row-item" style="cursor:pointer" onclick="openDetail('${t.id}')">
-        <div class="sla-row-top">
-          <span class="sla-row-title" title="${t.title}">${t.id} · ${t.title}</span>
-          <span class="sla-row-label ${sla.cls||''}">${sla.label||'—'}</span>
-        </div>
-        <div class="sla-mini-bar"><div class="sla-mini-fill" style="width:${sla.pct||0}%;background:${sla.bar||'var(--text3)'}"></div></div>
-      </div>`;
-    }).join('');
+  const slaCount=document.getElementById('ud-sla-count');
+  if(slaList){
+    if(!active.length){
+      if(slaCount) slaCount.textContent='';
+      slaList.innerHTML=`<div class="ud-sla-empty"><div class="ud-sla-empty-icon">📭</div><div class="ud-sla-empty-title">Tidak ada tiket aktif</div><div class="ud-sla-empty-sub">SLA akan tampil saat ada tiket yang sedang berjalan</div></div>`;
+    } else {
+      if(slaCount) slaCount.textContent=active.length+' tiket';
+      slaList.innerHTML=active.sort((a,b)=>(b.sla?.pct||0)-(a.sla?.pct||0)).slice(0,8).map(t=>{
+        const sla=t.sla||{};
+        const warnCls=sla.cls==='sla-over'?'crit':sla.cls==='sla-warn'?'warn':'ok';
+        const warnIcon=sla.cls==='sla-over'?'⚠️':sla.cls==='sla-warn'?'⏰':'✓';
+        return `<div class="sla-row-item" onclick="openDetail('${t.id}')">
+          <div class="sla-row-top">
+            <span class="sla-row-title" title="${t.title}">${t.id} · ${t.title}</span>
+            <span class="sla-row-label ${sla.cls||''}">${sla.label||'—'}</span>
+          </div>
+          <div class="sla-mini-bar"><div class="sla-mini-fill" style="width:${sla.pct||0}%;background:${sla.bar||'var(--text3)'}"></div></div>
+          <div class="ud-sla-meta">
+            <span class="ud-sla-pct">${sla.pct||0}% digunakan</span>
+            <span class="ud-sla-warn ${warnCls}">${warnIcon} ${sla.label||'—'}</span>
+          </div>
+        </div>`;
+      }).join('');
+    }
   }
   const el=document.getElementById('ud-ticket-list');
   if(!filtered.length){el.innerHTML=`<div class="user-empty"><div class="user-empty-illus">📭</div><div class="user-empty-title">Tidak ada tiket</div><div class="user-empty-sub">Belum ada tiket di kategori ini.</div>${udTab2==='all'?`<button class="btn btn-primary" onclick="openCreate()" style="margin:0 auto">+ Buat Tiket Pertama</button>`:''}</div>`;return;}
+  // Label pendek khusus user dashboard (compact)
+  const udLabel=t=>{
+    if(t.approval==='pending') return 'Menunggu';
+    if(t.closed_at) return 'Selesai';
+    if(t.freeze_status==='active') return 'Freeze';
+    if(t.freeze_status==='pending_approval') return 'Req.Freeze';
+    return 'Berjalan';
+  };
   el.innerHTML=filtered.map(t=>{
     const pct=t.task_total>0?Math.round((t.task_done/t.task_total)*100):0;
+    const barColor=t.closed_at?'var(--green)':pct>=90?'var(--red)':pct>=75?'var(--yellow)':'linear-gradient(90deg,var(--accent),#818cf8)';
+    const typeLbl=t.type==='incident'?'🚨 Insiden':t.type==='newproject'?'🆕 Proyek':' 📬 Request';
     return `<div class="user-ticket-row" onclick="openDetail('${t.id}')">
       <div class="utf-id">${t.id}</div>
       <div class="utf-body">
         <div class="utf-title">${t.title}${t.it_comment_count>0?` <span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;background:var(--accent-glow);color:var(--accent);border:1px solid rgba(8,145,178,.3);border-radius:20px;padding:1px 6px;vertical-align:middle">💬 ${t.it_comment_count}</span>`:''}</div>
-        <div class="stage-minibar" style="gap:0">
-          <div class="progress-bar" style="height:3px;flex:1;margin:0"><div class="progress-fill" style="width:${pct}%;background:${t.closed_at?'var(--green)':'linear-gradient(90deg,var(--accent),#818cf8)'}"></div></div>
+        <div class="utf-compact-meta">
+          <span class="utf-type-badge">${typeLbl}</span>
+          <div class="ud-progress-bar"><div class="ud-progress-fill" style="width:${pct}%;background:${barColor}"></div></div>
+          <span class="ud-progress-pct">${pct}%</span>
+          ${t.task_total>0?`<span class="utf-task-count">${t.task_done}/${t.task_total}</span>`:''}
         </div>
       </div>
-      <div class="utf-status"><span class="status-chip ${stateClass(t)}"><span class="dot"></span>${stateLabel(t)}</span></div>
+      <div class="utf-status"><span class="status-chip ${stateClass(t)}"><span class="dot"></span>${udLabel(t)}</span></div>
       <div class="utf-sla ${(t.sla||{}).cls||''}">${(t.sla||{}).due||'—'}</div>
     </div>`;
   }).join('');
@@ -1051,27 +1380,38 @@ function renderBoard(){
   const todo=tickets.filter(t=>t.approval==='pending'&&filt(t));
   const onprog=tickets.filter(t=>t.approval==='approved'&&!t.closed_at&&filt(t));
   const done=tickets.filter(t=>!!t.closed_at&&filt(t));
-  const mk=arr=>arr.map(t=>`
-    <div class="ticket-card ${t.approval==='pending'?'pend':t.freeze_status==='active'?'frozen-card':''}" onclick="openDetail('${t.id}')" style="${t.freeze_status==='active'?'border-color:rgba(124,58,237,0.4);':''}">
+  const mk=arr=>arr.map(t=>{
+    const pct=t.progress||0;
+    const sla=t.sla||{};
+    const barColor=t.closed_at?'var(--green)':t.freeze_status==='active'?'var(--purple)':pct>=90?'var(--red)':pct>=75?'var(--yellow)':'linear-gradient(90deg,var(--accent),#818cf8)';
+    const slaIcon=sla.cls==='sla-over'?'⚠️':sla.cls==='sla-warn'?'⏰':'⏱';
+    const stateColor=t.freeze_status==='active'?'var(--purple)':t.freeze_status==='pending_approval'?'var(--orange)':t.closed_at?'var(--green)':'var(--text3)';
+    return `<div class="ticket-card ${t.approval==='pending'?'pend':t.freeze_status==='active'?'frozen-card':''}" onclick="openDetail('${t.id}')" style="${t.freeze_status==='active'?'border-color:rgba(124,58,237,0.4);':''}">
       ${t.approval==='pending'?'<div class="pend-badge">PENDING</div>':''}
       ${t.freeze_status==='active'?'<div class="pend-badge" style="background:var(--purple);color:white">🧊 FREEZE</div>':''}
       ${t.freeze_status==='pending_approval'?'<div class="pend-badge" style="background:var(--orange);color:white">⏸ REQ. FREEZE</div>':''}
-      <div class="ticket-id">${t.id}</div>
-      <div class="ticket-title">${t.title}</div>
-      <div class="ticket-meta">
+      <div class="tc-header-row">
+        <span class="ticket-id">${t.id}</span>
         <span class="tag ${t.type}">${t.type==='incident'?'🚨 Insiden':t.type==='newproject'?'🆕 Proyek Baru':'📬 Permintaan'}</span>
-        <span class="tag" style="background:var(--surface3);color:var(--text2)">${t.category||''}</span>
+        ${t.category?`<span class="tag" style="background:var(--surface3);color:var(--text2)">${t.category}</span>`:''}
+        ${t.it_comment_count>0?`<span class="tc-comment-badge">💬 ${t.it_comment_count}</span>`:''}
       </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:7px;margin-bottom:3px">
-        <span style="font-size:10px;font-weight:600;color:${t.freeze_status==='active'?'var(--purple)':t.freeze_status==='pending_approval'?'var(--orange)':'var(--text3)'}">${stateLabel(t)}</span>
-        <span style="font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace;color:${t.progress===100?'var(--green)':t.progress>0?'var(--accent)':'var(--text3)'}">${t.task_total>0?t.task_done+'/'+t.task_total+' tugas':''}</span>
+      <div class="ticket-title">${t.title}</div>
+      <div class="tc-progress-row">
+        <div class="tc-progress-track"><div class="tc-progress-bar" style="width:${pct}%;background:${barColor}"></div></div>
+        <span class="tc-pct-label">${pct}%</span>
       </div>
-      <div class="progress-bar"><div class="progress-fill" style="width:${t.progress}%;background:${t.closed_at?'var(--green)':t.freeze_status==='active'?'var(--purple)':'linear-gradient(90deg,var(--accent),#818cf8)'}"></div></div>
+      <div class="tc-info-row">
+        <span class="tc-task-info">${t.task_total>0?t.task_done+'/'+t.task_total+' tugas':'Belum ada tugas'}</span>
+        <span class="tc-state-lbl" style="color:${stateColor}">${stateLabel(t)}</span>
+      </div>
       <div class="ticket-footer">
-        <div class="ticket-assignee"><div class="mini-avatar" style="background:${t.assignee_color||ac(t.assignee)};width:18px;height:18px;font-size:8px">${t.assignee_initials||ini(t.assignee)}</div>${t.assignee||'—'}</div>
-        <span class="${(t.sla||{}).cls||''}" style="font-size:10px;font-family:'JetBrains Mono',monospace">${(t.sla||{}).label||'—'}</span>
+        <div class="ticket-assignee"><div class="mini-avatar" style="background:${t.assignee_color||ac(t.assignee)};width:18px;height:18px;font-size:8px">${t.assignee_initials||ini(t.assignee)}</div><span>${t.assignee||'Belum ditugaskan'}</span></div>
+        <span class="tc-sla-chip ${sla.cls||''}">${slaIcon} ${sla.label||'—'}</span>
       </div>
-    </div>`).join('');
+      ${t.creator?`<div class="tc-creator">👤 ${t.creator}</div>`:''}
+    </div>`;
+  }).join('');
   document.getElementById('col-todo').innerHTML=mk(todo);
   document.getElementById('col-onprogress').innerHTML=mk(onprog);
   document.getElementById('col-done').innerHTML=mk(done);
