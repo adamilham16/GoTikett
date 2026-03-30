@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Events\NotificationSent;
 use Illuminate\Database\Eloquent\Model;
 
 class Notification extends Model
@@ -11,21 +12,23 @@ class Notification extends Model
     protected $casts = ['read_at' => 'datetime'];
 
     /**
-     * Buat notifikasi untuk user tertentu.
+     * Buat notifikasi untuk user tertentu dan broadcast via Reverb.
      */
     public static function send(int $userId, string $type, string $title, string $message, ?string $ticketId = null): void
     {
-        static::create([
+        $notif = static::create([
             'user_id'   => $userId,
             'type'      => $type,
             'title'     => $title,
             'message'   => $message,
             'ticket_id' => $ticketId,
         ]);
+
+        event(new NotificationSent($userId, $type, $title, $message, $ticketId, $notif->id));
     }
 
     /**
-     * Buat notifikasi sekaligus untuk banyak user (single INSERT).
+     * Buat notifikasi sekaligus untuk banyak user (single INSERT) dan broadcast.
      *
      * @param int[] $userIds
      */
@@ -47,5 +50,10 @@ class Notification extends Model
         ], $userIds);
 
         static::insert($rows);
+
+        // Broadcast ke setiap penerima
+        foreach ($userIds as $userId) {
+            event(new NotificationSent($userId, $type, $title, $message, $ticketId));
+        }
     }
 }

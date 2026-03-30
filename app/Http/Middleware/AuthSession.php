@@ -20,6 +20,8 @@ class AuthSession
         }
         // Simpan user di request agar middleware lain tidak perlu query ulang
         $request->attributes->set('auth_user', $user);
+        // Set user resolver agar $request->user() bekerja (dibutuhkan broadcasting auth)
+        $request->setUserResolver(fn() => $user);
         return $next($request);
     }
 }

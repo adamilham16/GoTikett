@@ -28,70 +28,70 @@ Route::middleware('auth.session')->group(function () {
     Route::get('/app-data',  [AdminController::class, 'appData'])->name('app.data');
 
     // Password
-    Route::post('/password/change', [AuthController::class, 'changePassword'])->name('password.change');
+    Route::post('/password/change', [AuthController::class, 'changePassword'])->name('password.change')->middleware('throttle:5,10');
 
     // Notifikasi in-app (semua role)
     Route::get('/notifications',            [NotificationController::class, 'index'])->name('notifications.index');
-    Route::post('/notifications/mark-read', [NotificationController::class, 'markRead'])->name('notifications.markRead');
+    Route::post('/notifications/mark-read', [NotificationController::class, 'markRead'])->name('notifications.markRead')->middleware('throttle:30,1');
 
     // Export Excel (IT + Manager) — harus SEBELUM wildcard {ticketId}
-    Route::get('/tickets/export/excel',             [TicketController::class, 'exportExcel'])->name('tickets.export');
+    Route::get('/tickets/export/excel',             [TicketController::class, 'exportExcel'])->name('tickets.export')->middleware('throttle:10,1');
 
     // Rejection notice (User) — harus SEBELUM wildcard {ticketId}
     Route::get('/tickets/rejection-notice',         [TicketController::class, 'getRejectionNotice'])->name('tickets.rejection.get');
-    Route::post('/tickets/rejection-notice/dismiss',[TicketController::class, 'dismissRejectionNotice'])->name('tickets.rejection.dismiss');
+    Route::post('/tickets/rejection-notice/dismiss',[TicketController::class, 'dismissRejectionNotice'])->name('tickets.rejection.dismiss')->middleware('throttle:30,1');
 
     // Tiket
-    Route::post('/tickets',                         [TicketController::class, 'store'])->name('tickets.store');
+    Route::post('/tickets',                         [TicketController::class, 'store'])->name('tickets.store')->middleware('throttle:20,1');
     Route::get('/tickets/{ticketId}',               [TicketController::class, 'show'])->name('tickets.show');
-    Route::post('/tickets/{ticketId}/comment',      [TicketController::class, 'comment'])->name('tickets.comment');
-    Route::get('/attachments/{id}/download',        [TicketController::class, 'downloadAttachment'])->name('attachments.download');
+    Route::post('/tickets/{ticketId}/comment',      [TicketController::class, 'comment'])->name('tickets.comment')->middleware('throttle:30,1');
+    Route::get('/attachments/{id}/download',        [TicketController::class, 'downloadAttachment'])->name('attachments.download')->middleware('throttle:60,1');
 
     // Tasks (checklist)
     // ── Manager Only (approve/reject) ─────────────────────────────────────────
     Route::middleware('role:manager')->group(function () {
-        Route::post('/tickets/{ticketId}/approve',  [TicketController::class, 'approve'])->name('tickets.approve');
-        Route::delete('/tickets/{ticketId}/reject', [TicketController::class, 'reject'])->name('tickets.reject');
-        Route::post('/freezes/{freezeId}/approve',  [TicketController::class, 'approveFreeze'])->name('freezes.approve');
-        Route::post('/freezes/{freezeId}/reject',   [TicketController::class, 'rejectFreeze'])->name('freezes.reject');
+        Route::post('/tickets/{ticketId}/approve',  [TicketController::class, 'approve'])->name('tickets.approve')->middleware('throttle:30,1');
+        Route::delete('/tickets/{ticketId}/reject', [TicketController::class, 'reject'])->name('tickets.reject')->middleware('throttle:30,1');
+        Route::post('/freezes/{freezeId}/approve',  [TicketController::class, 'approveFreeze'])->name('freezes.approve')->middleware('throttle:30,1');
+        Route::post('/freezes/{freezeId}/reject',   [TicketController::class, 'rejectFreeze'])->name('freezes.reject')->middleware('throttle:30,1');
     });
 
     // ── IT SIM + Manager IT ───────────────────────────────────────────────────
     Route::middleware('role:it,it_manager')->group(function () {
         // Tasks (checklist)
-        Route::post('/tickets/{ticketId}/tasks',    [AdminController::class, 'storeTask'])->name('tasks.store');
-        Route::patch('/tasks/{taskId}/toggle',      [AdminController::class, 'toggleTask'])->name('tasks.toggle');
-        Route::patch('/tasks/{taskId}',             [AdminController::class, 'updateTask'])->name('tasks.update');
-        Route::delete('/tasks/{taskId}',            [AdminController::class, 'destroyTask'])->name('tasks.destroy');
+        Route::post('/tickets/{ticketId}/tasks',    [AdminController::class, 'storeTask'])->name('tasks.store')->middleware('throttle:60,1');
+        Route::patch('/tasks/{taskId}/toggle',      [AdminController::class, 'toggleTask'])->name('tasks.toggle')->middleware('throttle:60,1');
+        Route::patch('/tasks/{taskId}',             [AdminController::class, 'updateTask'])->name('tasks.update')->middleware('throttle:60,1');
+        Route::delete('/tasks/{taskId}',            [AdminController::class, 'destroyTask'])->name('tasks.destroy')->middleware('throttle:60,1');
 
-        Route::post('/tickets/{ticketId}/close',    [TicketController::class, 'close'])->name('tickets.close');
-        Route::delete('/tickets/{ticketId}',        [TicketController::class, 'destroy'])->name('tickets.destroy');
-        Route::post('/tickets/{ticketId}/freeze',   [TicketController::class, 'requestFreeze'])->name('tickets.freeze');
-        Route::post('/tickets/{ticketId}/unfreeze', [TicketController::class, 'unfreeze'])->name('tickets.unfreeze');
+        Route::post('/tickets/{ticketId}/close',    [TicketController::class, 'close'])->name('tickets.close')->middleware('throttle:30,1');
+        Route::delete('/tickets/{ticketId}',        [TicketController::class, 'destroy'])->name('tickets.destroy')->middleware('throttle:10,1');
+        Route::post('/tickets/{ticketId}/freeze',   [TicketController::class, 'requestFreeze'])->name('tickets.freeze')->middleware('throttle:10,1');
+        Route::post('/tickets/{ticketId}/unfreeze', [TicketController::class, 'unfreeze'])->name('tickets.unfreeze')->middleware('throttle:10,1');
 
         // Users
         Route::get('/users',                              [UserController::class, 'pageIndex'])->name('users.page');
         Route::get('/users/data',                         [UserController::class, 'index'])->name('users.data');
-        Route::post('/users',                             [UserController::class, 'store'])->name('users.store');
-        Route::patch('/users/{id}',                       [UserController::class, 'update'])->name('users.update');
-        Route::patch('/users/{id}/toggle-active',         [UserController::class, 'toggleActive'])->name('users.toggleActive');
-        Route::patch('/users/{id}/reset-password',        [UserController::class, 'resetPassword'])->name('users.resetPassword');
-        Route::delete('/users/{id}',                      [UserController::class, 'destroy'])->name('users.destroy');
+        Route::post('/users',                             [UserController::class, 'store'])->name('users.store')->middleware('throttle:20,1');
+        Route::patch('/users/{id}',                       [UserController::class, 'update'])->name('users.update')->middleware('throttle:30,1');
+        Route::patch('/users/{id}/toggle-active',         [UserController::class, 'toggleActive'])->name('users.toggleActive')->middleware('throttle:30,1');
+        Route::patch('/users/{id}/reset-password',        [UserController::class, 'resetPassword'])->name('users.resetPassword')->middleware('throttle:10,1');
+        Route::delete('/users/{id}',                      [UserController::class, 'destroy'])->name('users.destroy')->middleware('throttle:10,1');
 
         // Clients
         Route::get('/clients',         [AdminController::class, 'getClients'])->name('clients.index');
-        Route::post('/clients',        [AdminController::class, 'storeClient'])->name('clients.store');
-        Route::delete('/clients/{id}', [AdminController::class, 'destroyClient'])->name('clients.destroy');
+        Route::post('/clients',        [AdminController::class, 'storeClient'])->name('clients.store')->middleware('throttle:20,1');
+        Route::delete('/clients/{id}', [AdminController::class, 'destroyClient'])->name('clients.destroy')->middleware('throttle:10,1');
 
         // Auto Assign
         Route::get('/auto-assign',         [AdminController::class, 'getAutoAssign'])->name('autoassign.index');
-        Route::post('/auto-assign',        [AdminController::class, 'storeAutoAssign'])->name('autoassign.store');
-        Route::delete('/auto-assign/{id}', [AdminController::class, 'destroyAutoAssign'])->name('autoassign.destroy');
+        Route::post('/auto-assign',        [AdminController::class, 'storeAutoAssign'])->name('autoassign.store')->middleware('throttle:20,1');
+        Route::delete('/auto-assign/{id}', [AdminController::class, 'destroyAutoAssign'])->name('autoassign.destroy')->middleware('throttle:10,1');
 
         // App Config
         Route::get('/config',           [AdminController::class, 'getConfig'])->name('config.get');
-        Route::post('/config',          [AdminController::class, 'saveConfig'])->name('config.save');
-        Route::post('/config/reset',    [AdminController::class, 'resetConfig'])->name('config.reset');
+        Route::post('/config',          [AdminController::class, 'saveConfig'])->name('config.save')->middleware('throttle:10,1');
+        Route::post('/config/reset',    [AdminController::class, 'resetConfig'])->name('config.reset')->middleware('throttle:5,1');
 
         // Security: login logs & pending password resets
         Route::get('/security/login-logs',      [AdminController::class, 'loginLogs'])->name('security.loginLogs');
@@ -100,6 +100,6 @@ Route::middleware('auth.session')->group(function () {
 
     // ── Manager IT Only (reassign) ────────────────────────────────────────────
     Route::middleware('role:it_manager')->group(function () {
-        Route::post('/tickets/{ticketId}/reassign', [TicketController::class, 'reassign'])->name('tickets.reassign');
+        Route::post('/tickets/{ticketId}/reassign', [TicketController::class, 'reassign'])->name('tickets.reassign')->middleware('throttle:30,1');
     });
 });

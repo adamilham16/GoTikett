@@ -46,7 +46,8 @@ RUN apk add --no-cache \
     icu-dev \
     freetype-dev \
     libjpeg-turbo-dev \
-    libwebp-dev
+    libwebp-dev \
+    linux-headers
 
 # Install PHP extensions (termasuk gd yang dibutuhkan PhpSpreadsheet)
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
@@ -59,7 +60,9 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
         exif \
         opcache \
         intl \
-        bcmath
+        bcmath \
+        pcntl \
+        sockets
 
 # Copy Composer binary dari image resminya
 COPY --from=composer:2.7 /usr/bin/composer /usr/bin/composer
@@ -69,8 +72,9 @@ WORKDIR /var/www/html
 # Copy hasil Stage 1 (Laravel + file GoTiket + vendor awal)
 COPY --from=builder /app /var/www/html
 
-# Install PhpSpreadsheet di sini — ext-gd sudah tersedia
-RUN composer require phpoffice/phpspreadsheet --no-interaction --no-progress \
+# Install PhpSpreadsheet dan Laravel Reverb
+RUN composer require phpoffice/phpspreadsheet laravel/reverb --no-interaction --no-progress \
+    && php artisan reverb:install --no-interaction 2>/dev/null || true \
     && composer dump-autoload --optimize \
     && rm /usr/bin/composer
 

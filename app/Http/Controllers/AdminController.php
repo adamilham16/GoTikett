@@ -15,9 +15,16 @@ use App\Models\Comment;
 use App\Models\LoginLog;
 use App\Models\PasswordResetToken;
 use App\Models\Notification;
+use App\Services\TicketFormatter;
+use App\Services\TicketQueryService;
 
 class AdminController extends Controller
 {
+    public function __construct(
+        private TicketFormatter    $formatter,
+        private TicketQueryService $ticketQuery,
+    ) {}
+
     // ── Clients ───────────────────────────────────────────────────────────────
     public function getClients()
     {
@@ -190,22 +197,8 @@ class AdminController extends Controller
 
         $limit = min((int) request('limit', 500), 1000);
 
-        $ticketQuery = Ticket::with(['creator', 'assignee', 'tasks', 'currentFreeze.requester', 'activeFreeze'])->orderByDesc('created_at');
-        if ($user->type === 'user') {
-            $ticketQuery->where('creator_id', $user->id);
-        }
-        // Role 'it' hanya melihat tiket yang di-assign ke dirinya
-        if ($user->type === 'it') {
-            $ticketQuery->where('assignee_id', $user->id);
-        }
-        // Role 'manager' hanya melihat tiket dari User yang approver-nya adalah manager ini
-        if ($user->type === 'manager') {
-            $ticketQuery->whereIn('creator_id', User::where('approver_id', $user->id)->select('id'));
-        }
-        // Role 'it_manager' melihat semua tiket yang assignee-nya IT SIM
-        if ($user->type === 'it_manager') {
-            $ticketQuery->whereIn('assignee_id', User::where('type', 'it')->select('id'));
-        }
+        $ticketQuery = $this->ticketQuery->scopeForUser($user)
+            ->with(['creator', 'assignee', 'tasks', 'currentFreeze.requester', 'activeFreeze']);
         $totalCount = $ticketQuery->count();
         $tickets    = $ticketQuery->limit($limit)->get();
 
@@ -226,7 +219,7 @@ class AdminController extends Controller
                 'approver' => $user->approver?->name,
             ],
             'tickets_total'   => $totalCount,
-            'tickets'         => $tickets->map(fn($t) => $this->formatTicketSummary($t)),
+            'tickets'         => $tickets->map(fn($t) => $this->formatter->formatSummary($t)),
             'clients'         => $clients,
             'itTeam'          => $itTeam,
             'config'          => $config,
@@ -271,35 +264,4 @@ class AdminController extends Controller
         return response()->json($requests);
     }
 
-    private function formatTicketSummary(Ticket $t): array
-    {
-        $sla    = $t->sla;
-        $freeze = $t->currentFreeze;
-        return [
-            'id'               => $t->ticket_id,
-            'title'            => $t->title,
-            'type'             => $t->type,
-            'approval'         => $t->approval,
-            'category'         => $t->category,
-            'client'           => $t->client,
-            'assignee'         => $t->assignee?->name,
-            'assignee_color'   => $t->assignee?->color,
-            'assignee_initials'=> $t->assignee?->initials,
-            'creator'          => $t->creator?->name,
-            'creator_id'       => $t->creator_id,
-            'created_at'       => $t->created_at->toISOString(),
-            'due_date'         => $t->due_date?->format('d M Y'),
-            'closed_at'        => $t->closed_at?->toISOString(),
-            'progress'         => $t->progress,
-            'sla'              => $sla,
-            'task_total'       => $t->tasks->count(),
-            'task_done'        => $t->tasks->where('status', 'Done')->count(),
-            'freeze_status'    => $t->freeze_status,
-            'freeze_id'        => $freeze?->id,
-            'freeze_duration'  => $freeze?->duration_days,
-            'freeze_reason'    => $freeze?->reason,
-            'freeze_requester' => $freeze?->requester?->name,
-            'freeze_ends_at'   => $freeze?->freeze_ends_at?->format('d M Y'),
-        ];
-    }
 }
