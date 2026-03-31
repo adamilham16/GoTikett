@@ -471,20 +471,6 @@ body{
       </div>
     </div>
 
-    <div class="left-stats">
-      <div class="lstat">
-        <div class="lstat-num">99%</div>
-        <div class="lstat-label">Uptime</div>
-      </div>
-      <div class="lstat">
-        <div class="lstat-num">v1.0</div>
-        <div class="lstat-label">Versi</div>
-      </div>
-      <div class="lstat">
-        <div class="lstat-num">4.6</div>
-        <div class="lstat-label">Rating</div>
-      </div>
-    </div>
   </div>
 
   <div class="powered-by">Powered by SIMGROUP · LOB CCCM</div>

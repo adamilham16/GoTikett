@@ -81,25 +81,6 @@
         <!-- ── Kolom Kanan (30%): Insight + SLA ── -->
         <div class="ud-right-col">
 
-          <!-- Quick Stats Card -->
-          <div class="ud-quick-card">
-            <div class="ud-quick-header">Ringkasan</div>
-            <div class="ud-quick-body">
-              <div class="ud-qs-row">
-                <span class="ud-qs-label">Sedang berjalan</span>
-                <span class="ud-qs-num" id="qs-active" style="color:#0891b2">0</span>
-              </div>
-              <div class="ud-qs-row">
-                <span class="ud-qs-label">Menunggu persetujuan</span>
-                <span class="ud-qs-num" id="qs-pending" style="color:#d97706">0</span>
-              </div>
-              <div class="ud-qs-row">
-                <span class="ud-qs-label">Selesai / ditutup</span>
-                <span class="ud-qs-num" id="qs-done" style="color:#059669">0</span>
-              </div>
-            </div>
-          </div>
-
           <!-- SLA Panel: selalu tampil di kolom kanan -->
           <div id="ud-stage-panel" style="background:rgba(255,255,255,0.90);backdrop-filter:blur(8px);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;box-shadow:0 2px 10px rgba(8,145,178,0.07)">
             <div style="padding:10px 14px;border-bottom:1px solid var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:space-between">

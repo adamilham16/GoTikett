@@ -9,6 +9,7 @@ Aplikasi manajemen tiket (helpdesk) internal berbasis web untuk mengelola permin
 ## Daftar Isi
 
 - [Fitur Utama](#fitur-utama)
+- [UI/UX Design System](#uiux-design-system)
 - [Arsitektur Sistem](#arsitektur-sistem)
 - [Peran & Izin](#peran--izin)
 - [Alur Tiket](#alur-tiket)
@@ -30,6 +31,12 @@ Aplikasi manajemen tiket (helpdesk) internal berbasis web untuk mengelola permin
 
 ## Fitur Utama
 
+> **Changelog terbaru (2026-03-31)**
+> - Halaman login: hapus keterangan Uptime 99%, v1.0, dan Rating 4.6
+> - Portal User: hapus card "Ringkasan" yang redundan dengan stat cards di atasnya
+> - Portal IT/Manager: Vibrant Redesign — stat cards full gradient, chart headers berwarna, kanban column color-coded, glassmorphism panels, topbar rainbow accent line
+> - Portal User: Vibrant Redesign — greeting header glassmorphism + orb dekoratif + gradient text, stat cards full gradient (+ purple), chart headers berwarna, ticket section header gradient, SLA panel glassmorphism
+
 | Fitur | Keterangan |
 |---|---|
 | **Manajemen Tiket** | Buat, lihat, komentar, lampiran file, tutup, dan hapus tiket |
@@ -45,6 +52,66 @@ Aplikasi manajemen tiket (helpdesk) internal berbasis web untuk mengelola permin
 | **Password Reset** | Forgot password via email atau token link manual (jika tanpa email) |
 | **Notifikasi In-App** | Notifikasi real-time berbasis database untuk event tiket penting |
 | **Export Excel** | IT dan Manager bisa ekspor semua tiket ke file `.xlsx` |
+
+---
+
+## UI/UX Design System
+
+Dashboard GoTiket menggunakan design language modern yang konsisten di seluruh portal:
+
+### Prinsip Desain
+
+| Prinsip | Implementasi |
+|---|---|
+| **Vibrant Colorful Cards** | Stat cards menggunakan full gradient (bukan tint tipis) dengan warna kontras tinggi |
+| **Glassmorphism** | Panel SLA, greeting header, dan widget menggunakan `backdrop-filter:blur` dengan background semi-transparan |
+| **Neumorphism Icons** | Icon container di stat cards menggunakan frosted glass (`rgba(255,255,255,0.22)` + inset shadow) di atas warna vibrant |
+| **Gradient Typography** | Heading dan judul section menggunakan CSS gradient text (`-webkit-background-clip:text`) |
+| **Soft Shadows** | Box shadow berwarna sesuai warna card (`rgba(warna, 0.38)`) untuk depth yang natural |
+| **Playful Accents** | Orb dekoratif di greeting header, rainbow gradient line di topbar, colored kanban headers |
+| **Responsive** | Breakpoint di 1024px, 900px, 768px, dan 480px |
+
+### Palet Warna per Portal
+
+**Portal IT/Manager:**
+| Card | Warna | Gradient |
+|---|---|---|
+| Total Tiket | Biru | `#0284c7 → #38bdf8` |
+| Menunggu Persetujuan | Amber | `#b45309 → #fbbf24` |
+| Sedang Berjalan | Oranye | `#c2410c → #fb923c` |
+| Selesai / Ditutup | Hijau | `#047857 → #6ee7b7` |
+| Chart kiri | Ungu | `#6366f1 → #a78bfa` |
+| Chart kanan | Pink→Oranye | `#ec4899 → #fb923c` |
+
+**Portal User:**
+| Card | Warna | Gradient |
+|---|---|---|
+| Total Tiket | Biru | `#0284c7 → #38bdf8` |
+| Sedang Berjalan | Oranye | `#c2410c → #fb923c` |
+| Selesai / Tayang | Hijau | `#047857 → #6ee7b7` |
+| Menunggu Persetujuan | Ungu | `#7c3aed → #a78bfa` |
+| Chart kiri | Ungu→Cyan | `#7c3aed → #06b6d4` |
+| Chart kanan | Pink→Oranye | `#ec4899 → #f97316` |
+
+### Struktur CSS (Partials)
+
+Semua CSS dashboard terpusat di `resources/views/dashboard/partials/_styles.blade.php` dan diorganisir dalam blok scoped:
+
+```
+_styles.blade.php
+├── :root variables (warna, radius)
+├── Base styles (sidebar, topbar, layout)
+├── Stat cards, kanban, table
+├── USER DASHBOARD — SCOPED UI/UX ENHANCEMENTS
+├── COMPACT LAYOUT OPTIMIZATION
+├── STAT CARD: GRADIENT FILL (user-stats-grid)
+├── CHART CONTAINERS
+├── WIDE 2-COLUMN LAYOUT
+├── SESI 3: TABULAR + POLISH
+├── IT / MANAGER BOARD — SCOPED ENHANCEMENTS
+├── IT/MANAGER: VIBRANT REDESIGN  ← scoped ke #it-dashboard
+└── USER PORTAL: VIBRANT REDESIGN ← scoped ke .user-dashboard
+```
 
 ---
 
@@ -506,7 +573,19 @@ gotiket/
 │       │   ├── forgot-password.blade.php
 │       │   └── reset-password.blade.php
 │       ├── dashboard/
-│       │   └── index.blade.php         ← Halaman utama (~2000+ baris, semua UI + JS)
+│       │   ├── index.blade.php              ← Entry point, load partials
+│       │   └── partials/
+│       │       ├── _styles.blade.php        ← Semua CSS dashboard (scoped per portal)
+│       │       ├── _sidebar.blade.php       ← Sidebar navigasi
+│       │       ├── _main_content.blade.php  ← HTML konten (user + IT/Manager)
+│       │       ├── _scripts.blade.php       ← Semua JavaScript (fetch, render, WS)
+│       │       ├── _init_data.blade.php     ← Data awal dari PHP ke JS
+│       │       ├── _modal_create.blade.php  ← Modal buat tiket
+│       │       ├── _modal_detail.blade.php  ← Modal detail tiket
+│       │       ├── _modal_approval.blade.php← Modal approve/reject
+│       │       ├── _modal_admin.blade.php   ← Modal admin (klien, config, dll)
+│       │       ├── _modal_task_edit.blade.php ← Modal edit task
+│       │       └── _modal_freeze.blade.php  ← Modal freeze tiket
 │       ├── emails/
 │       │   └── password-reset.blade.php
 │       └── users/

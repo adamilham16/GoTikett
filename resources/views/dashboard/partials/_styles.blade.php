@@ -305,13 +305,8 @@ tr:hover td{background:var(--surface2);}
    Tidak ada dampak ke halaman atau widget lain.
 ══════════════════════════════════════════════════════════════ */
 
-/* 1. SUMMARY CARDS — border kiri aksen + hover naik */
-.user-stats-grid .stat-card{border-left:3px solid transparent;transition:transform .2s ease,box-shadow .2s ease;}
-.user-stats-grid .stat-card.blue  {border-left-color:var(--accent);}
-.user-stats-grid .stat-card.green {border-left-color:var(--green);}
-.user-stats-grid .stat-card.orange{border-left-color:var(--orange);}
-.user-stats-grid .stat-card.teal  {border-left-color:var(--teal);}
-.user-stats-grid .stat-card:hover {transform:translateY(-4px);box-shadow:0 8px 24px rgba(8,145,178,.15);}
+/* 1. SUMMARY CARDS — transition base (warna & hover di-handle blok Vibrant Redesign) */
+.user-stats-grid .stat-card{transition:transform .2s ease,box-shadow .2s ease,filter .2s ease;}
 /* icon & label sejajar dalam satu baris */
 .ud-card-top{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
 .ud-card-top .stat-icon{margin-bottom:0;flex-shrink:0;}
@@ -446,22 +441,19 @@ tr:hover td{background:var(--surface2);}
 
 /* ══ STAT CARD: GRADIENT FILL (Sesi 2) ══════════════════════
    Mengganti 2px top-strip dengan tinted gradient background.
-   Scoped ke .user-stats-grid dan #it-dashboard .stats-grid.
+   Scoped ke .user-stats-grid (IT-dashboard ditangani di blok Vibrant Redesign).
 ════════════════════════════════════════════════════════════ */
 .stat-card::before{display:none;}/* sembunyikan strip 2px lama */
 
-.user-stats-grid .stat-card.blue,
-#it-dashboard .stat-card.blue {
+.user-stats-grid .stat-card.blue {
   background:linear-gradient(145deg,rgba(8,145,178,0.12) 0%,rgba(255,255,255,0.97) 55%);
   border-color:rgba(8,145,178,0.22);
 }
-.user-stats-grid .stat-card.green,
-#it-dashboard .stat-card.green {
+.user-stats-grid .stat-card.green {
   background:linear-gradient(145deg,rgba(5,150,105,0.12) 0%,rgba(255,255,255,0.97) 55%);
   border-color:rgba(5,150,105,0.22);
 }
-.user-stats-grid .stat-card.orange,
-#it-dashboard .stat-card.orange {
+.user-stats-grid .stat-card.orange {
   background:linear-gradient(145deg,rgba(234,88,12,0.12) 0%,rgba(255,255,255,0.97) 55%);
   border-color:rgba(234,88,12,0.22);
 }
@@ -469,20 +461,8 @@ tr:hover td{background:var(--surface2);}
   background:linear-gradient(145deg,rgba(13,148,136,0.12) 0%,rgba(255,255,255,0.97) 55%);
   border-color:rgba(13,148,136,0.22);
 }
-#it-dashboard .stat-card.yellow {
-  background:linear-gradient(145deg,rgba(217,119,6,0.12) 0%,rgba(255,255,255,0.97) 55%);
-  border-color:rgba(217,119,6,0.22);
-}
 
-/* Stat value: warna aksen sesuai tipe */
-.user-stats-grid .stat-card.blue .stat-value,
-#it-dashboard .stat-card.blue .stat-value   { color:#0891b2; }
-.user-stats-grid .stat-card.green .stat-value,
-#it-dashboard .stat-card.green .stat-value  { color:#059669; }
-.user-stats-grid .stat-card.orange .stat-value,
-#it-dashboard .stat-card.orange .stat-value { color:#ea580c; }
-.user-stats-grid .stat-card.teal .stat-value{ color:#0d9488; }
-#it-dashboard .stat-card.yellow .stat-value { color:#d97706; }
+/* Stat value warna: di-handle di blok Vibrant Redesign (putih di atas gradient) */
 
 /* Trend badge: arrow ↑↓ */
 .ud-stat-trend::before       { content:'↑ '; font-size:11px; }
@@ -638,13 +618,8 @@ tr:hover td{background:var(--surface2);}
    Zero impact ke user-dashboard atau halaman lain.
 ══════════════════════════════════════════════════════════════ */
 
-/* Stat cards IT: border kiri aksen (scoped) */
-#it-dashboard .stat-card{border-left:3px solid transparent;transition:transform .2s ease,box-shadow .2s ease;}
-#it-dashboard .stat-card.blue  {border-left-color:var(--accent);}
-#it-dashboard .stat-card.yellow{border-left-color:var(--yellow);}
-#it-dashboard .stat-card.orange{border-left-color:var(--orange);}
-#it-dashboard .stat-card.green {border-left-color:var(--green);}
-#it-dashboard .stat-card:hover {transform:translateY(-3px);box-shadow:0 8px 24px rgba(8,145,178,.15);}
+/* Stat cards IT: transition base (warna & hover di-handle blok Vibrant Redesign) */
+#it-dashboard .stat-card{transition:transform .2s ease,box-shadow .2s ease,filter .2s ease;}
 
 /* Ticket card: hover lebih kuat */
 #board-view .ticket-card{transition:transform .18s ease,box-shadow .18s ease,border-color .15s!important;}
@@ -673,4 +648,256 @@ tr:hover td{background:var(--surface2);}
 
 /* Creator/requester baris bawah card */
 .tc-creator{font-size:10px;color:var(--text3);margin-top:5px;padding-top:5px;border-top:1px solid var(--border);display:flex;align-items:center;gap:4px;}
+
+/* ══════════════════════════════════════════════════════════════
+   IT/MANAGER: VIBRANT REDESIGN
+   Scoped ke #it-dashboard, #it-charts-row, #board-view.
+   Zero impact ke user-dashboard atau halaman lain.
+══════════════════════════════════════════════════════════════ */
+
+/* Tambah variable pink */
+:root{--pink:#ec4899;--pink-bg:rgba(236,72,153,0.1);}
+
+/* ── 1. STAT CARDS: full vibrant gradient + strong shadow ── */
+#it-dashboard .stat-card.blue{
+  background:linear-gradient(135deg,#0284c7 0%,#38bdf8 100%)!important;
+  border:1px solid #0369a1!important;
+  border-left:none!important;
+  box-shadow:0 8px 28px rgba(2,132,199,0.38),0 2px 6px rgba(0,0,0,.06)!important;
+}
+#it-dashboard .stat-card.yellow{
+  background:linear-gradient(135deg,#b45309 0%,#fbbf24 100%)!important;
+  border:1px solid #92400e!important;
+  border-left:none!important;
+  box-shadow:0 8px 28px rgba(217,119,6,0.38),0 2px 6px rgba(0,0,0,.06)!important;
+}
+#it-dashboard .stat-card.orange{
+  background:linear-gradient(135deg,#c2410c 0%,#fb923c 100%)!important;
+  border:1px solid #9a3412!important;
+  border-left:none!important;
+  box-shadow:0 8px 28px rgba(234,88,12,0.38),0 2px 6px rgba(0,0,0,.06)!important;
+}
+#it-dashboard .stat-card.green{
+  background:linear-gradient(135deg,#047857 0%,#6ee7b7 100%)!important;
+  border:1px solid #065f46!important;
+  border-left:none!important;
+  box-shadow:0 8px 28px rgba(5,150,105,0.38),0 2px 6px rgba(0,0,0,.06)!important;
+}
+
+/* Teks putih di atas card vibrant */
+#it-dashboard .stat-card .stat-label{color:rgba(255,255,255,0.85)!important;}
+#it-dashboard .stat-card .stat-sub{color:rgba(255,255,255,0.7)!important;}
+#it-dashboard .stat-card.blue .stat-value,
+#it-dashboard .stat-card.yellow .stat-value,
+#it-dashboard .stat-card.orange .stat-value,
+#it-dashboard .stat-card.green .stat-value{color:#ffffff!important;}
+
+/* Neumorphism-style icon: frosted glass di atas warna vibrant */
+#it-dashboard .stat-card .stat-icon{
+  background:rgba(255,255,255,0.22)!important;
+  box-shadow:inset 0 1px 3px rgba(0,0,0,.14),0 2px 8px rgba(0,0,0,.10);
+  width:40px;height:40px;font-size:19px;
+  border:1px solid rgba(255,255,255,0.3);
+}
+
+/* Hover: lift + brightness */
+#it-dashboard .stat-card:hover{
+  transform:translateY(-6px) scale(1.02)!important;
+  filter:brightness(1.07);
+}
+
+/* ── 2. CHART CARDS IT: gradient header warna ── */
+#it-charts-row .chart-card{
+  box-shadow:0 6px 24px rgba(8,145,178,0.14)!important;
+}
+#it-charts-row .chart-card:first-child .chart-card-hdr{
+  background:linear-gradient(135deg,#6366f1 0%,#a78bfa 100%);
+  border-bottom:none;
+}
+#it-charts-row .chart-card:last-child .chart-card-hdr{
+  background:linear-gradient(135deg,#ec4899 0%,#fb923c 100%);
+  border-bottom:none;
+}
+#it-charts-row .chart-card-hdr .chart-card-title{color:#ffffff!important;}
+
+/* ── 3. PANEL AKTIVITAS + SLA IT: glassmorphism lebih dalam ── */
+#it-dashboard div:has(>#activity-list),
+#it-dashboard div:has(>#sla-list){
+  background:rgba(255,255,255,0.75)!important;
+  backdrop-filter:blur(18px)!important;
+  -webkit-backdrop-filter:blur(18px)!important;
+  box-shadow:0 6px 28px rgba(8,145,178,0.15)!important;
+  border:1px solid rgba(8,145,178,0.2)!important;
+}
+#it-dashboard div:has(>#activity-list)>div:first-child{
+  background:linear-gradient(135deg,rgba(99,102,241,0.12),rgba(240,249,252,0.9))!important;
+  border-bottom:1px solid rgba(99,102,241,0.15)!important;
+}
+#it-dashboard div:has(>#sla-list)>div:first-child{
+  background:linear-gradient(135deg,rgba(236,72,153,0.12),rgba(240,249,252,0.9))!important;
+  border-bottom:1px solid rgba(236,72,153,0.15)!important;
+}
+
+/* ── 4. KANBAN COLUMNS: color-coded header + shadow ── */
+#board-view .kanban-col{
+  box-shadow:0 4px 18px rgba(8,145,178,0.12)!important;
+  border:1px solid rgba(8,145,178,0.14)!important;
+}
+#board-view .kanban-col:nth-child(1) .col-header{
+  background:linear-gradient(135deg,rgba(148,163,184,0.25),rgba(240,249,252,0.7));
+  border-bottom:2px solid #94a3b8;
+}
+#board-view .kanban-col:nth-child(2) .col-header{
+  background:linear-gradient(135deg,rgba(99,102,241,0.2),rgba(240,249,252,0.7));
+  border-bottom:2px solid #6366f1;
+}
+#board-view .kanban-col:nth-child(3) .col-header{
+  background:linear-gradient(135deg,rgba(52,211,153,0.2),rgba(240,249,252,0.7));
+  border-bottom:2px solid #34d399;
+}
+
+/* ── 5. TOPBAR: rainbow accent bottom line ── */
+.topbar{
+  border-bottom:2px solid transparent!important;
+  border-image:linear-gradient(90deg,#6366f1,#ec4899,#f59e0b,#0ea5e9) 1!important;
+  box-shadow:0 2px 18px rgba(8,145,178,0.13)!important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   USER PORTAL: VIBRANT REDESIGN
+   Scoped ke .user-dashboard, .user-stats-grid, #user-charts-row,
+   #ud-stage-panel. Zero impact ke IT/Manager atau halaman lain.
+══════════════════════════════════════════════════════════════ */
+
+/* ── 1. GREETING HEADER: glassmorphism + gradient text ── */
+.user-dashboard .user-dash-header{
+  background:linear-gradient(135deg,rgba(99,102,241,0.11) 0%,rgba(236,72,153,0.07) 55%,rgba(14,165,233,0.05) 100%);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border:1px solid rgba(99,102,241,0.18);
+  border-radius:var(--radius-lg);
+  padding:18px 24px;
+  margin-bottom:14px;
+  box-shadow:0 4px 22px rgba(99,102,241,0.12);
+  position:relative;overflow:hidden;
+}
+/* dekorasi orb kanan atas */
+.user-dashboard .user-dash-header::before{
+  content:'';position:absolute;top:-24px;right:-24px;
+  width:110px;height:110px;
+  background:radial-gradient(circle,rgba(236,72,153,0.22),transparent 70%);
+  border-radius:50%;pointer-events:none;
+}
+/* dekorasi orb kiri bawah */
+.user-dashboard .user-dash-header::after{
+  content:'';position:absolute;bottom:-18px;left:30px;
+  width:80px;height:80px;
+  background:radial-gradient(circle,rgba(99,102,241,0.18),transparent 70%);
+  border-radius:50%;pointer-events:none;
+}
+.user-dashboard .user-dash-greeting{
+  font-size:20px;font-weight:800;
+  background:linear-gradient(135deg,#6366f1,#ec4899);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+  position:relative;z-index:1;
+}
+.user-dashboard .user-dash-sub{
+  font-size:12px;color:var(--text2);margin-top:3px;
+  position:relative;z-index:1;
+}
+
+/* ── 2. STAT CARDS user: full vibrant gradient ── */
+.user-stats-grid .stat-card.blue{
+  background:linear-gradient(135deg,#0284c7 0%,#38bdf8 100%)!important;
+  border:1px solid #0369a1!important;border-left:none!important;
+  box-shadow:0 8px 28px rgba(2,132,199,0.38),0 2px 6px rgba(0,0,0,.06)!important;
+}
+.user-stats-grid .stat-card.orange{
+  background:linear-gradient(135deg,#c2410c 0%,#fb923c 100%)!important;
+  border:1px solid #9a3412!important;border-left:none!important;
+  box-shadow:0 8px 28px rgba(234,88,12,0.38),0 2px 6px rgba(0,0,0,.06)!important;
+}
+.user-stats-grid .stat-card.green{
+  background:linear-gradient(135deg,#047857 0%,#6ee7b7 100%)!important;
+  border:1px solid #065f46!important;border-left:none!important;
+  box-shadow:0 8px 28px rgba(5,150,105,0.38),0 2px 6px rgba(0,0,0,.06)!important;
+}
+/* yellow class → purple gradient (tambah purple ke user portal) */
+.user-stats-grid .stat-card.yellow{
+  background:linear-gradient(135deg,#7c3aed 0%,#a78bfa 100%)!important;
+  border:1px solid #6d28d9!important;border-left:none!important;
+  box-shadow:0 8px 28px rgba(124,58,237,0.38),0 2px 6px rgba(0,0,0,.06)!important;
+}
+
+/* Teks putih di atas card vibrant */
+.user-stats-grid .stat-card.blue .stat-label,
+.user-stats-grid .stat-card.orange .stat-label,
+.user-stats-grid .stat-card.green .stat-label,
+.user-stats-grid .stat-card.yellow .stat-label{color:rgba(255,255,255,0.85)!important;}
+.user-stats-grid .stat-card.blue .stat-sub,
+.user-stats-grid .stat-card.orange .stat-sub,
+.user-stats-grid .stat-card.green .stat-sub,
+.user-stats-grid .stat-card.yellow .stat-sub{color:rgba(255,255,255,0.7)!important;}
+.user-stats-grid .stat-card.blue .stat-value,
+.user-stats-grid .stat-card.orange .stat-value,
+.user-stats-grid .stat-card.green .stat-value,
+.user-stats-grid .stat-card.yellow .stat-value{color:#ffffff!important;}
+
+/* Neumorphism-style icon: frosted glass di atas warna vibrant */
+.user-stats-grid .stat-card .stat-icon{
+  background:rgba(255,255,255,0.22)!important;
+  box-shadow:inset 0 1px 3px rgba(0,0,0,.14),0 2px 8px rgba(0,0,0,.10);
+  width:40px;height:40px;font-size:19px;
+  border:1px solid rgba(255,255,255,0.3);
+}
+
+/* Trend badge: tetap terbaca di atas warna vibrant */
+.user-stats-grid .stat-card .ud-stat-trend{
+  background:rgba(255,255,255,0.2)!important;
+  color:rgba(255,255,255,0.92)!important;
+}
+
+/* Hover: lift + brightness */
+.user-stats-grid .stat-card:hover{
+  transform:translateY(-6px) scale(1.02)!important;
+  filter:brightness(1.07);
+}
+
+/* ── 3. CHART CARDS user: gradient header berbeda per chart ── */
+#user-charts-row .chart-card{
+  box-shadow:0 6px 24px rgba(8,145,178,0.14)!important;
+}
+#user-charts-row .chart-card:first-child .chart-card-hdr{
+  background:linear-gradient(135deg,#7c3aed 0%,#06b6d4 100%);
+  border-bottom:none;
+}
+#user-charts-row .chart-card:last-child .chart-card-hdr{
+  background:linear-gradient(135deg,#ec4899 0%,#f97316 100%);
+  border-bottom:none;
+}
+#user-charts-row .chart-card-hdr .chart-card-title{color:#ffffff!important;}
+
+/* ── 4. TICKET SECTION HEADER: gradient accent ── */
+.user-dashboard .user-ticket-header{
+  background:linear-gradient(135deg,rgba(14,165,233,0.09),rgba(240,249,252,0.97));
+  border-bottom:2px solid rgba(14,165,233,0.2)!important;
+}
+.user-dashboard .user-ticket-title{
+  background:linear-gradient(135deg,#0ea5e9,#6366f1);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+  font-weight:800;
+}
+
+/* ── 5. SLA PANEL kolom kanan: glassmorphism + header warna ── */
+#ud-stage-panel{
+  background:rgba(255,255,255,0.72)!important;
+  backdrop-filter:blur(18px)!important;-webkit-backdrop-filter:blur(18px)!important;
+  box-shadow:0 6px 28px rgba(124,58,237,0.16)!important;
+  border:1px solid rgba(124,58,237,0.18)!important;
+}
+#ud-stage-panel>div:first-child{
+  background:linear-gradient(135deg,rgba(124,58,237,0.14),rgba(240,249,252,0.92))!important;
+  border-bottom:1px solid rgba(124,58,237,0.16)!important;
+}
 </style>

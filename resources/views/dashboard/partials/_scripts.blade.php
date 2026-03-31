@@ -216,11 +216,6 @@ function renderUserDashboard(){
   else if(udTab2==='golive'||udTab2==='closed') filtered=done;
   if(udTypeFilt!=='all') filtered=filtered.filter(t=>t.type===udTypeFilt);
   document.getElementById('ud-ticket-count').textContent=filtered.length+' tiket';
-  // Quick summary di kolom kanan
-  const qEl=id=>document.getElementById(id);
-  if(qEl('qs-active'))  qEl('qs-active').textContent=active.length;
-  if(qEl('qs-pending')) qEl('qs-pending').textContent=pending.length;
-  if(qEl('qs-done'))    qEl('qs-done').textContent=done.length;
   // Render SLA panel — selalu tampil di kolom kanan (tidak hide)
   const slaList=document.getElementById('ud-sla-list');
   const slaCount=document.getElementById('ud-sla-count');
