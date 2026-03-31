@@ -2,7 +2,58 @@
 
 Aplikasi manajemen tiket (helpdesk) internal berbasis web untuk mengelola permintaan layanan IT, approval alur kerja, penugasan otomatis, dan pemantauan SLA.
 
-**Stack:** Laravel 12 · PHP 8.2 · MySQL 8 · Nginx · Docker
+**Stack:** Laravel 12 · PHP 8.2 · MySQL 8 · Nginx · Docker · Reverb · Vite
+
+---
+
+## Tech Stack
+
+### Backend
+| Komponen | Versi / Detail |
+|---|---|
+| **PHP** | 8.2 (fpm-alpine) |
+| **Laravel** | 12.x |
+| **MySQL** | 8.0 |
+| **PhpSpreadsheet** | `phpoffice/phpspreadsheet` — export Excel `.xlsx` |
+| **Laravel Reverb** | WebSocket server bawaan Laravel (broadcast real-time) |
+
+### Frontend
+| Komponen | Detail |
+|---|---|
+| **Blade** | Server-side rendering — tidak menggunakan React/Vue |
+| **Vanilla JavaScript** | Semua interaksi UI ditulis manual (fetch, DOM, WS) |
+| **Chart.js** | Grafik donut & bar di dashboard |
+| **Space Grotesk** | Font utama (Google Fonts) |
+| **JetBrains Mono** | Font angka & monospace |
+
+### Build Tools
+| Komponen | Versi |
+|---|---|
+| **Vite** | ^6.0 |
+| **laravel-vite-plugin** | ^1.0 |
+
+### Real-time / Broadcasting
+| Komponen | Versi / Detail |
+|---|---|
+| **Laravel Reverb** | WebSocket server (port 8080) |
+| **Laravel Echo** | ^2.3.1 — client-side WebSocket listener |
+| **Pusher-JS** | ^8.4.3 — driver yang digunakan Laravel Echo |
+
+### Infrastructure
+| Komponen | Detail |
+|---|---|
+| **Docker** | Multi-stage build (builder + runtime dalam satu image Alpine) |
+| **Nginx** | Reverse proxy + static file serving (dalam container yang sama dengan PHP) |
+| **PHP-FPM** | FastCGI process manager |
+| **Supervisor** | Mengelola proses Nginx, PHP-FPM, dan Reverb dalam satu container |
+| **phpMyAdmin** | Opsional — aktif via `make up-tools` (port 8081) |
+
+### Session & Cache
+| Komponen | Driver |
+|---|---|
+| **Session** | `database` (tabel `sessions`) |
+| **Cache** | `file` |
+| **Queue** | `sync` (tidak ada antrian asinkron) |
 
 ---
 
